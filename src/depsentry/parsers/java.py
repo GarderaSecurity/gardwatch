@@ -9,7 +9,7 @@ class MavenPomParser(DependencyParser):
 
     async def parse(self, file_path: Path) -> AsyncIterator[Dependency]:
         try:
-            tree = ET.parse(file_path)
+            tree = defusedxml.etree.ElementTree.parse(file_path)
             root = tree.getroot()
         except ET.ParseError:
             return
