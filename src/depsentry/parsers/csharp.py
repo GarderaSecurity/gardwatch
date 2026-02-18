@@ -9,6 +9,8 @@ class CSharpProjectParser(DependencyParser):
 
     async def parse(self, file_path: Path) -> AsyncIterator[Dependency]:
         try:
+from defusedxml import ElementTree as ET
+
             tree = ET.parse(file_path)
             root = tree.getroot()
         except ET.ParseError:
