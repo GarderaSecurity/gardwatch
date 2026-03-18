@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GardWatch - Secure Your Software Supply Chain</title>
+    <meta name="description" content="GardWatch analyzes your dependencies for trust, security risks, and quality signals. Go beyond vulnerability scanning.">
+    <meta property="og:title" content="GardWatch - Secure Your Software Supply Chain">
+    <meta property="og:description" content="Analyze dependencies for trust, security risks, and quality signals across PyPI, npm, Go, Cargo, Maven, and NuGet.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://gardwatch.dev">
+    <style>
+        :root {
+            --green: #10b981;
+            --green-dark: #059669;
+            --bg: #0f172a;
+            --bg-card: #1e293b;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --border: #334155;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem;
+        }
+
+        .logo {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--green);
+            text-decoration: none;
+        }
+
+        .logo span { color: var(--text); }
+
+        nav a {
+            color: var(--text-muted);
+            text-decoration: none;
+            margin-left: 2rem;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        nav a:hover { color: var(--green); }
+
+        .hero {
+            text-align: center;
+            padding: 6rem 2rem 4rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--green);
+            padding: 0.35rem 1rem;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            font-size: 3.2rem;
+            font-weight: 800;
+            line-height: 1.15;
+            margin-bottom: 1.5rem;
+        }
+
+        h1 em {
+            font-style: normal;
+            color: var(--green);
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto 2.5rem;
+        }
+
+        .cta-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.8rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--green);
+            color: #fff;
+        }
+
+        .btn-primary:hover { background: var(--green-dark); }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover { border-color: var(--green); }
+
+        .terminal {
+            max-width: 700px;
+            margin: 3rem auto 0;
+            background: #0d1117;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            text-align: left;
+        }
+
+        .terminal-bar {
+            background: #161b22;
+            padding: 0.6rem 1rem;
+            display: flex;
+            gap: 6px;
+        }
+
+        .terminal-bar span {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--border);
+        }
+
+        .terminal-body {
+            padding: 1.2rem 1.5rem;
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 0.9rem;
+            line-height: 1.8;
+            overflow-x: auto;
+        }
+
+        .terminal-body .prompt { color: var(--green); }
+        .terminal-body .cmd { color: var(--text); }
+        .terminal-body .output { color: var(--text-muted); }
+        .terminal-body .ok { color: var(--green); }
+        .terminal-body .warn { color: #f59e0b; }
+        .terminal-body .crit { color: #ef4444; }
+
+        .features {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .feature {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 2rem;
+        }
+
+        .feature-icon {
+            font-size: 1.6rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .ecosystems {
+            text-align: center;
+            padding: 3rem 2rem 5rem;
+        }
+
+        .ecosystems h2 {
+            font-size: 1.6rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .ecosystems p {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        .eco-list {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .eco-tag {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 0.5rem 1.2rem;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        footer a {
+            color: var(--green);
+            text-decoration: none;
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 2.2rem; }
+            .hero { padding: 4rem 1.5rem 3rem; }
+            .features { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/" class="logo">Gard<span>Watch</span></a>
+        <div>
+            <a href="https://github.com/GarderaSecurity/gardwatch">GitHub</a>
+            <a href="https://github.com/GarderaSecurity/gardwatch#usage">Docs</a>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="badge">Open Source &middot; MIT License</div>
+        <h1>Know what you're <em>really</em> installing</h1>
+        <p>GardWatch scores your dependencies on trust, security, and quality &mdash; catching supply chain threats that vulnerability scanners miss.</p>
+        <div class="cta-group">
+            <a href="https://github.com/GarderaSecurity/gardwatch" class="btn btn-primary">Get Started</a>
+            <a href="https://github.com/GarderaSecurity/gardwatch#usage" class="btn btn-secondary">Read the Docs</a>
+        </div>
+
+        <div class="terminal">
+            <div class="terminal-bar"><span></span><span></span><span></span></div>
+            <div class="terminal-body">
+                <div><span class="prompt">$</span> <span class="cmd">gardwatch analyze requirements.txt</span></div>
+                <br>
+                <div><span class="output">Scanning 12 packages...</span></div>
+                <br>
+                <div><span class="ok">  [98/100]</span> <span class="cmd">requests</span> <span class="output">- Well maintained, high trust</span></div>
+                <div><span class="ok">  [91/100]</span> <span class="cmd">flask</span> <span class="output">- Mature, widely adopted</span></div>
+                <div><span class="warn">  [42/100]</span> <span class="cmd">colorlib</span> <span class="output">- Low downloads, no repo link</span></div>
+                <div><span class="crit">  [ 0/100]</span> <span class="cmd">req-uests</span> <span class="output">- TYPOSQUAT DETECTED</span></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="feature">
+            <div class="feature-icon">&#x1f6e1;&#xfe0f;</div>
+            <h3>Trust Scoring</h3>
+            <p>Every package gets a 0&ndash;100 score based on age, downloads, security practices, and metadata quality.</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">&#x1f50d;</div>
+            <h3>Threat Detection</h3>
+            <p>Catches typosquatting, namespace squatting, homoglyph attacks, and known malware before they hit production.</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">&#x1f4e6;</div>
+            <h3>Deep Code Scan</h3>
+            <p>Optionally download and analyze source code for obfuscated payloads, suspicious network calls, and hidden scripts.</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">&#x1f4cb;</div>
+            <h3>SBOM Support</h3>
+            <p>Parse CycloneDX SBOMs, requirements.txt, package.json, go.mod, Cargo.toml, pom.xml, and more.</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">&#x1f4ca;</div>
+            <h3>OpenSSF Scorecard</h3>
+            <p>Integrates security best practice data from the OpenSSF Scorecard project for deeper risk assessment.</p>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">&#x26a1;</div>
+            <h3>Quick Scan</h3>
+            <p>Check any single package before you install it. One command, instant trust report.</p>
+        </div>
+    </section>
+
+    <section class="ecosystems">
+        <h2>Multi-Ecosystem Support</h2>
+        <p>Analyze packages across all major ecosystems.</p>
+        <div class="eco-list">
+            <span class="eco-tag">PyPI (Python)</span>
+            <span class="eco-tag">npm (JavaScript)</span>
+            <span class="eco-tag">Go Modules</span>
+            <span class="eco-tag">Cargo (Rust)</span>
+            <span class="eco-tag">Maven (Java)</span>
+            <span class="eco-tag">NuGet (.NET)</span>
+        </div>
+    </section>
+
+    <footer>
+        Built by <a href="https://github.com/GarderaSecurity">Gardera Security</a> &middot; <a href="https://github.com/GarderaSecurity/gardwatch">View on GitHub</a>
+    </footer>
+</body>
+</html>
