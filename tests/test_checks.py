@@ -1,11 +1,11 @@
 import pytest
 from datetime import datetime, timedelta, timezone
-from depsentry.models import (
+from gardwatch.models import (
     Dependency, CheckContext, DepsDevVersionDetails, DepsDevPackage, 
     DepsDevVersionKey, DepsDevAdvisoryKey, DepsDevLink, OpenSSFScorecard, DepsDevProject,
     DepsDevProjectKey
 )
-from depsentry.checks import (
+from gardwatch.checks import (
     check_malware, check_typosquatting, check_namespace_squatting, 
     check_version_spike, check_release_zero, check_empty_info, 
     check_homoglyphs, check_age, check_downloads

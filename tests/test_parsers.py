@@ -2,10 +2,10 @@ import pytest
 from pathlib import Path
 import tempfile
 import shutil
-from depsentry.parsers.go import GoModParser
-from depsentry.parsers.rust import CargoTomlParser
-from depsentry.parsers.java import MavenPomParser
-from depsentry.parsers.csharp import CSharpProjectParser
+from gardwatch.parsers.go import GoModParser
+from gardwatch.parsers.rust import CargoTomlParser
+from gardwatch.parsers.java import MavenPomParser
+from gardwatch.parsers.csharp import CSharpProjectParser
 
 @pytest.fixture
 def temp_dir():
