@@ -247,7 +247,7 @@ async def run_scan(package: str, ecosystem: str, deep: bool):
         sys.exit(1)
 
 def main():
-    parser = argparse.ArgumentParser(description="DepSentry: Protect your dependencies.")
+    parser = argparse.ArgumentParser(description="GardWatch: Protect your dependencies.")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # Analyze file command

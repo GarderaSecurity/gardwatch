@@ -2,7 +2,7 @@ import pytest
 from pathlib import Path
 import tempfile
 import shutil
-from depsentry.parsers.cyclonedx import CycloneDXParser
+from gardwatch.parsers.cyclonedx import CycloneDXParser
 
 @pytest.fixture
 def temp_dir():

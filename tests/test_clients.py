@@ -1,9 +1,9 @@
 import pytest
 from unittest.mock import AsyncMock, Mock
 import httpx
-from depsentry.clients.pypi import PyPIClient
-from depsentry.clients.nuget import NugetClient
-from depsentry.clients.cargo import CargoClient
+from gardwatch.clients.pypi import PyPIClient
+from gardwatch.clients.nuget import NugetClient
+from gardwatch.clients.cargo import CargoClient
 
 @pytest.fixture
 def mock_client():
@@ -44,4 +44,4 @@ async def test_cargo_downloads(mock_client):
     cargo = CargoClient(mock_client)
     count = await cargo.get_download_count("serde")
     assert count == 555
-    mock_client.get.assert_called_with("https://crates.io/api/v1/crates/serde", headers={"User-Agent": "depsentry-cli (bot)"}, timeout=5.0)
+    mock_client.get.assert_called_with("https://crates.io/api/v1/crates/serde", headers={"User-Agent": "gardwatch-cli (bot)"}, timeout=5.0)

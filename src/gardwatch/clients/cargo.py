@@ -30,7 +30,7 @@ class CargoClient:
         Note: Crates.io returns ALL-TIME downloads.
         """
         url = f"https://crates.io/api/v1/crates/{package_name}"
-        headers = {"User-Agent": "depsentry-cli (bot)"}
+        headers = {"User-Agent": "gardwatch-cli (bot)"}
         try:
             response = await self._make_request(url, headers=headers)
             if response and response.status_code == 200:

@@ -3,7 +3,7 @@ from pathlib import Path
 import tempfile
 import shutil
 import os
-from depsentry.scanner import SourceScanner
+from gardwatch.scanner import SourceScanner
 
 @pytest.fixture
 def scanner():

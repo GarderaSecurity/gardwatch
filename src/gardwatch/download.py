@@ -17,7 +17,7 @@ class PackageDownloader:
         Downloads a package archive and extracts it to a temporary directory.
         Yields the path to the extracted directory.
         """
-        temp_dir = tempfile.mkdtemp(prefix="depsentry_")
+        temp_dir = tempfile.mkdtemp(prefix="gardwatch_")
         archive_path = Path(temp_dir) / "package.archive"
         
         try:

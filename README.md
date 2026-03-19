@@ -1,6 +1,6 @@
-# DepSentry 🛡️
+# GardWatch 🛡️
 
-**DepSentry** is a powerful CLI tool designed to secure your software supply chain by analyzing dependencies for trust, security risks, and quality signals. It goes beyond simple vulnerability scanning by evaluating the "health" and "trustworthiness" of a package using a composite scoring system.
+**GardWatch** is a powerful CLI tool designed to secure your software supply chain by analyzing dependencies for trust, security risks, and quality signals. It goes beyond simple vulnerability scanning by evaluating the "health" and "trustworthiness" of a package using a composite scoring system.
 
 ## Key Features
 
@@ -17,12 +17,12 @@
 
 ## Installation
 
-DepSentry requires Python 3.12+.
+GardWatch requires Python 3.12+.
 
 ```bash
 # Clone the repository
-git clone https://github.com/GarderaSecurity/depsentry.git
-cd depsentry
+git clone https://github.com/GarderaSecurity/gardwatch.git
+cd gardwatch
 
 # Install dependencies
 pipenv install
@@ -35,13 +35,13 @@ Scan your project's dependency files to get a full health report.
 
 ```bash
 # Analyze a Python requirements file
-python3 -m src.depsentry.cli analyze requirements.txt
+python3 -m src.gardwatch.cli analyze requirements.txt
 
 # Analyze a Node.js package.json
-python3 -m src.depsentry.cli analyze package.json
+python3 -m src.gardwatch.cli analyze package.json
 
 # Analyze multiple files
-python3 -m src.depsentry.cli analyze requirements.txt package.json Cargo.toml
+python3 -m src.gardwatch.cli analyze requirements.txt package.json Cargo.toml
 ```
 
 **Options:**
@@ -54,20 +54,20 @@ Check a single package before you install it.
 
 ```bash
 # Check a PyPI package
-python3 -m src.depsentry.cli scan requests --pypi
+python3 -m src.gardwatch.cli scan requests --pypi
 
 # Check an npm package
-python3 -m src.depsentry.cli scan react --npm
+python3 -m src.gardwatch.cli scan react --npm
 
 # Check a Rust crate
-python3 -m src.depsentry.cli scan serde --cargo
+python3 -m src.gardwatch.cli scan serde --cargo
 ```
 
 **Supported Flags:** `--pypi`, `--npm`, `--go`, `--cargo`, `--maven`, `--nuget`.
 
 ## How It Works
 
-DepSentry aggregates data from multiple sources, including **deps.dev**, **pypistats.org**, **npmjs.org**, and ecosystem-specific registries. It applies a set of heuristic checks to generate a report:
+GardWatch aggregates data from multiple sources, including **deps.dev**, **pypistats.org**, **npmjs.org**, and ecosystem-specific registries. It applies a set of heuristic checks to generate a report:
 
 | Check | Impact | Description |
 | :--- | :--- | :--- |
