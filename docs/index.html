@@ -3,95 +3,212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GardWatch - Secure Your Software Supply Chain</title>
-    <meta name="description" content="GardWatch analyzes your dependencies for trust, security risks, and quality signals. Go beyond vulnerability scanning.">
-    <meta property="og:title" content="GardWatch - Secure Your Software Supply Chain">
+    <title>DepSentry - Dependency Intelligence</title>
+    <meta name="description" content="DepSentry analyzes your dependencies for trust, security risks, and quality signals. Go beyond vulnerability scanning.">
+    <meta property="og:title" content="DepSentry - Dependency Intelligence">
     <meta property="og:description" content="Analyze dependencies for trust, security risks, and quality signals across PyPI, npm, Go, Cargo, Maven, and NuGet.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://gardwatch.dev">
+    <meta property="og:url" content="https://depsentry.dev">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --green: #10b981;
-            --green-dark: #059669;
-            --bg: #0f172a;
-            --bg-card: #1e293b;
-            --text: #e2e8f0;
-            --text-muted: #94a3b8;
-            --border: #334155;
+            --cyan: #4de8d2;
+            --cyan-glow: #00e5ff;
+            --cyan-dim: rgba(77, 232, 210, 0.15);
+            --navy-deep: #0a0e1a;
+            --navy: #0f1628;
+            --navy-mid: #162035;
+            --navy-light: #1e2d4f;
+            --stripe-dark: #2a3a5c;
+            --stripe-red: #8b5e6b;
+            --text: #c8d6e5;
+            --text-bright: #e8eef5;
+            --text-muted: #6b7fa0;
+            --border: #1e2d4f;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--navy-deep);
             color: var(--text);
             line-height: 1.6;
+            overflow-x: hidden;
         }
 
+        /* ── Starfield ── */
+        .stars {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .star {
+            position: absolute;
+            width: 2px; height: 2px;
+            background: #fff;
+            border-radius: 50%;
+            animation: twinkle var(--dur) ease-in-out infinite;
+            opacity: 0;
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.1; }
+            50% { opacity: var(--peak, 0.8); }
+        }
+
+        /* ── Nav ── */
         nav {
+            position: relative;
+            z-index: 10;
             display: flex;
             justify-content: space-between;
             align-items: center;
             max-width: 1100px;
             margin: 0 auto;
             padding: 1.5rem 2rem;
+            animation: fadeDown 0.8s ease-out;
         }
 
         .logo {
-            font-size: 1.4rem;
+            font-family: 'Courier Prime', monospace;
+            font-size: 1.5rem;
             font-weight: 700;
-            color: var(--green);
+            color: var(--text-bright);
             text-decoration: none;
+            letter-spacing: 3px;
+            text-transform: uppercase;
         }
 
-        .logo span { color: var(--text); }
+        .logo em {
+            font-style: normal;
+            color: var(--cyan);
+        }
 
         nav a {
             color: var(--text-muted);
             text-decoration: none;
             margin-left: 2rem;
             font-size: 0.95rem;
-            transition: color 0.2s;
+            transition: color 0.3s;
         }
 
-        nav a:hover { color: var(--green); }
+        nav a:hover { color: var(--cyan); }
 
+        /* ── Hero ── */
         .hero {
+            position: relative;
+            z-index: 5;
             text-align: center;
-            padding: 6rem 2rem 4rem;
-            max-width: 800px;
+            padding: 2rem 2rem 4rem;
+            max-width: 900px;
             margin: 0 auto;
+        }
+
+        /* ── Lighthouse SVG Scene ── */
+        .lighthouse-scene {
+            position: relative;
+            width: 320px;
+            height: 400px;
+            margin: 0 auto 3rem;
+            animation: fadeUp 1s ease-out 0.2s both;
+        }
+
+        .lighthouse-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Light beam animation */
+        .light-beam {
+            animation: beamSweep 6s ease-in-out infinite;
+            transform-origin: 160px 95px;
+        }
+        @keyframes beamSweep {
+            0%, 100% { transform: rotate(-15deg); opacity: 0.5; }
+            25% { opacity: 0.8; }
+            50% { transform: rotate(15deg); opacity: 0.5; }
+            75% { opacity: 0.8; }
+        }
+
+        /* Light glow pulse */
+        .light-glow {
+            animation: glowPulse 3s ease-in-out infinite;
+        }
+        @keyframes glowPulse {
+            0%, 100% { opacity: 0.6; r: 18; }
+            50% { opacity: 1; r: 24; }
+        }
+
+        .light-core {
+            animation: corePulse 3s ease-in-out infinite;
+        }
+        @keyframes corePulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
+        /* Antenna blink */
+        .antenna-light {
+            animation: antennaBlink 2s ease-in-out infinite;
+        }
+        @keyframes antennaBlink {
+            0%, 40%, 100% { opacity: 0.3; r: 3; }
+            50%, 60% { opacity: 1; r: 5; }
+        }
+
+        /* Water shimmer */
+        .water-line {
+            animation: waterShimmer var(--wd, 4s) ease-in-out infinite;
+            animation-delay: var(--wdel, 0s);
+        }
+        @keyframes waterShimmer {
+            0%, 100% { opacity: 0.2; transform: translateX(0); }
+            50% { opacity: 0.5; transform: translateX(5px); }
+        }
+
+        .hero-title {
+            font-family: 'Courier Prime', monospace;
+            font-size: 3.5rem;
+            font-weight: 700;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+            color: var(--text-bright);
+            margin-bottom: 0.5rem;
+            animation: fadeUp 1s ease-out 0.5s both;
+        }
+
+        .hero-subtitle {
+            font-family: 'Courier Prime', monospace;
+            font-size: 1.1rem;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            animation: fadeUp 1s ease-out 0.7s both;
+        }
+
+        .hero-desc {
+            font-size: 1.15rem;
+            color: var(--text);
+            max-width: 600px;
+            margin: 0 auto 2.5rem;
+            animation: fadeUp 1s ease-out 0.9s both;
         }
 
         .badge {
             display: inline-block;
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            color: var(--green);
+            background: var(--cyan-dim);
+            border: 1px solid rgba(77, 232, 210, 0.3);
+            color: var(--cyan);
             padding: 0.35rem 1rem;
             border-radius: 999px;
             font-size: 0.85rem;
             margin-bottom: 1.5rem;
-        }
-
-        h1 {
-            font-size: 3.2rem;
-            font-weight: 800;
-            line-height: 1.15;
-            margin-bottom: 1.5rem;
-        }
-
-        h1 em {
-            font-style: normal;
-            color: var(--green);
-        }
-
-        .hero p {
-            font-size: 1.2rem;
-            color: var(--text-muted);
-            max-width: 600px;
-            margin: 0 auto 2.5rem;
+            animation: fadeUp 1s ease-out 0.4s both;
         }
 
         .cta-group {
@@ -99,6 +216,7 @@
             gap: 1rem;
             justify-content: center;
             flex-wrap: wrap;
+            animation: fadeUp 1s ease-out 1.1s both;
         }
 
         .btn {
@@ -108,64 +226,94 @@
             font-size: 1rem;
             font-weight: 600;
             text-decoration: none;
-            transition: all 0.2s;
+            transition: all 0.3s;
         }
 
         .btn-primary {
-            background: var(--green);
-            color: #fff;
+            background: var(--cyan);
+            color: var(--navy-deep);
+            box-shadow: 0 0 20px rgba(77, 232, 210, 0.3);
+        }
+        .btn-primary:hover {
+            background: #3ad4be;
+            box-shadow: 0 0 30px rgba(77, 232, 210, 0.5);
+            transform: translateY(-2px);
         }
 
-        .btn-primary:hover { background: var(--green-dark); }
-
         .btn-secondary {
-            background: var(--bg-card);
+            background: var(--navy-mid);
             color: var(--text);
             border: 1px solid var(--border);
         }
+        .btn-secondary:hover {
+            border-color: var(--cyan);
+            color: var(--cyan);
+            transform: translateY(-2px);
+        }
 
-        .btn-secondary:hover { border-color: var(--green); }
-
+        /* ── Terminal ── */
         .terminal {
             max-width: 700px;
             margin: 3rem auto 0;
-            background: #0d1117;
+            background: rgba(10, 14, 26, 0.8);
             border: 1px solid var(--border);
             border-radius: 10px;
             overflow: hidden;
             text-align: left;
+            animation: fadeUp 1s ease-out 1.3s both;
+            backdrop-filter: blur(10px);
         }
 
         .terminal-bar {
-            background: #161b22;
+            background: var(--navy-mid);
             padding: 0.6rem 1rem;
             display: flex;
             gap: 6px;
         }
 
         .terminal-bar span {
-            width: 12px;
-            height: 12px;
+            width: 12px; height: 12px;
             border-radius: 50%;
-            background: var(--border);
+            background: var(--navy-light);
         }
 
         .terminal-body {
             padding: 1.2rem 1.5rem;
-            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+            font-family: 'Courier Prime', 'SF Mono', 'Fira Code', monospace;
             font-size: 0.9rem;
             line-height: 1.8;
             overflow-x: auto;
         }
 
-        .terminal-body .prompt { color: var(--green); }
-        .terminal-body .cmd { color: var(--text); }
+        .terminal-body .prompt { color: var(--cyan); }
+        .terminal-body .cmd { color: var(--text-bright); }
         .terminal-body .output { color: var(--text-muted); }
-        .terminal-body .ok { color: var(--green); }
-        .terminal-body .warn { color: #f59e0b; }
+        .terminal-body .ok { color: var(--cyan); }
+        .terminal-body .warn { color: #f5a623; }
         .terminal-body .crit { color: #ef4444; }
 
+        /* Terminal typing animation */
+        .terminal-line {
+            opacity: 0;
+            animation: typeIn 0.4s ease-out forwards;
+        }
+        .terminal-line:nth-child(1) { animation-delay: 1.8s; }
+        .terminal-line:nth-child(2) { animation-delay: 2.3s; }
+        .terminal-line:nth-child(3) { animation-delay: 2.8s; }
+        .terminal-line:nth-child(4) { animation-delay: 3.1s; }
+        .terminal-line:nth-child(5) { animation-delay: 3.4s; }
+        .terminal-line:nth-child(6) { animation-delay: 3.7s; }
+        .terminal-line:nth-child(7) { animation-delay: 4.0s; }
+
+        @keyframes typeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Features ── */
         .features {
+            position: relative;
+            z-index: 5;
             max-width: 1100px;
             margin: 0 auto;
             padding: 4rem 2rem;
@@ -175,19 +323,45 @@
         }
 
         .feature {
-            background: var(--bg-card);
+            background: rgba(22, 32, 53, 0.6);
             border: 1px solid var(--border);
-            border-radius: 10px;
+            border-radius: 12px;
             padding: 2rem;
+            transition: all 0.4s;
+            backdrop-filter: blur(5px);
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .feature.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .feature:hover {
+            border-color: rgba(77, 232, 210, 0.4);
+            box-shadow: 0 0 30px rgba(77, 232, 210, 0.08);
+            transform: translateY(-4px);
+        }
+
+        .feature.visible:hover {
+            transform: translateY(-4px);
         }
 
         .feature-icon {
-            font-size: 1.6rem;
-            margin-bottom: 0.75rem;
+            width: 48px; height: 48px;
+            background: var(--cyan-dim);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
         }
 
         .feature h3 {
             font-size: 1.1rem;
+            color: var(--text-bright);
             margin-bottom: 0.5rem;
         }
 
@@ -196,17 +370,21 @@
             font-size: 0.95rem;
         }
 
+        /* ── Ecosystems ── */
         .ecosystems {
+            position: relative;
+            z-index: 5;
             text-align: center;
             padding: 3rem 2rem 5rem;
         }
 
         .ecosystems h2 {
             font-size: 1.6rem;
+            color: var(--text-bright);
             margin-bottom: 0.5rem;
         }
 
-        .ecosystems p {
+        .ecosystems > p {
             color: var(--text-muted);
             margin-bottom: 2rem;
         }
@@ -221,15 +399,25 @@
         }
 
         .eco-tag {
-            background: var(--bg-card);
+            background: rgba(22, 32, 53, 0.6);
             border: 1px solid var(--border);
             padding: 0.5rem 1.2rem;
             border-radius: 999px;
             font-size: 0.9rem;
             color: var(--text-muted);
+            transition: all 0.3s;
+            backdrop-filter: blur(5px);
         }
 
+        .eco-tag:hover {
+            border-color: rgba(77, 232, 210, 0.4);
+            color: var(--cyan);
+        }
+
+        /* ── Footer ── */
         footer {
+            position: relative;
+            z-index: 5;
             text-align: center;
             padding: 2rem;
             border-top: 1px solid var(--border);
@@ -238,46 +426,160 @@
         }
 
         footer a {
-            color: var(--green);
+            color: var(--cyan);
             text-decoration: none;
+            transition: opacity 0.3s;
+        }
+        footer a:hover { opacity: 0.7; }
+
+        /* ── Animations ── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeDown {
+            from { opacity: 0; transform: translateY(-15px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
+        /* ── Ocean gradient at bottom of hero ── */
+        .ocean-gradient {
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(to top, rgba(10, 20, 40, 0.8), transparent);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* ── Responsive ── */
         @media (max-width: 600px) {
-            h1 { font-size: 2.2rem; }
-            .hero { padding: 4rem 1.5rem 3rem; }
+            .hero-title { font-size: 2.2rem; letter-spacing: 4px; }
+            .hero-subtitle { font-size: 0.85rem; letter-spacing: 3px; }
+            .hero { padding: 2rem 1.5rem 3rem; }
             .features { grid-template-columns: 1fr; }
+            .lighthouse-scene { width: 240px; height: 300px; }
         }
     </style>
 </head>
 <body>
+    <!-- Starfield -->
+    <div class="stars" id="stars"></div>
+
     <nav>
-        <a href="/" class="logo">Gard<span>Watch</span></a>
+        <a href="/" class="logo">Dep<em>Sentry</em></a>
         <div>
-            <a href="https://github.com/GarderaSecurity/gardwatch">GitHub</a>
-            <a href="https://github.com/GarderaSecurity/gardwatch#usage">Docs</a>
+            <a href="https://github.com/GarderaSecurity/depsentry">GitHub</a>
+            <a href="https://github.com/GarderaSecurity/depsentry#usage">Docs</a>
         </div>
     </nav>
 
     <section class="hero">
+        <!-- Lighthouse SVG -->
+        <div class="lighthouse-scene">
+            <svg class="lighthouse-svg" viewBox="0 0 320 400" xmlns="http://www.w3.org/2000/svg">
+                <!-- Light beams -->
+                <g class="light-beam">
+                    <polygon points="160,95 -20,20 -40,70" fill="url(#beamGradL)" opacity="0.35"/>
+                    <polygon points="160,95 340,20 360,70" fill="url(#beamGradR)" opacity="0.35"/>
+                    <polygon points="160,95 -10,50 -30,95" fill="url(#beamGradL)" opacity="0.2"/>
+                    <polygon points="160,95 330,50 350,95" fill="url(#beamGradR)" opacity="0.2"/>
+                </g>
+
+                <defs>
+                    <linearGradient id="beamGradL" x1="160" y1="95" x2="-40" y2="45" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stop-color="#4de8d2" stop-opacity="0.8"/>
+                        <stop offset="100%" stop-color="#4de8d2" stop-opacity="0"/>
+                    </linearGradient>
+                    <linearGradient id="beamGradR" x1="160" y1="95" x2="360" y2="45" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stop-color="#4de8d2" stop-opacity="0.8"/>
+                        <stop offset="100%" stop-color="#4de8d2" stop-opacity="0"/>
+                    </linearGradient>
+                    <radialGradient id="glowGrad" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="#fff" stop-opacity="1"/>
+                        <stop offset="40%" stop-color="#4de8d2" stop-opacity="0.6"/>
+                        <stop offset="100%" stop-color="#4de8d2" stop-opacity="0"/>
+                    </radialGradient>
+                    <linearGradient id="towerGrad" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stop-color="#2a3a5c"/>
+                        <stop offset="50%" stop-color="#354a6e"/>
+                        <stop offset="100%" stop-color="#2a3a5c"/>
+                    </linearGradient>
+                </defs>
+
+                <!-- Lighthouse base / island -->
+                <ellipse cx="160" cy="340" rx="100" ry="14" fill="#0f1e35" opacity="0.8"/>
+
+                <!-- Tower body (tapered) -->
+                <polygon points="138,130 122,330 198,330 182,130" fill="url(#towerGrad)"/>
+
+                <!-- Stripes on tower -->
+                <polygon points="139,145 137,170 183,170 181,145" fill="#8b5e6b" opacity="0.85"/>
+                <polygon points="136,185 133,210 187,210 184,185" fill="#8b5e6b" opacity="0.85"/>
+                <polygon points="132,225 130,250 190,250 188,225" fill="#8b5e6b" opacity="0.85"/>
+                <polygon points="129,265 126,290 194,290 191,265" fill="#8b5e6b" opacity="0.85"/>
+                <polygon points="125,305 123,330 197,330 195,305" fill="#8b5e6b" opacity="0.85"/>
+
+                <!-- Windows -->
+                <ellipse cx="163" cy="205" rx="8" ry="6" fill="#0f1628" stroke="#4a6080" stroke-width="1.5"/>
+                <ellipse cx="160" cy="265" rx="8" ry="6" fill="#0f1628" stroke="#4a6080" stroke-width="1.5"/>
+
+                <!-- Gallery/walkway -->
+                <rect x="128" y="125" width="64" height="8" rx="2" fill="#3d4f6e"/>
+                <rect x="131" y="120" width="58" height="6" rx="2" fill="#4a5f7e"/>
+
+                <!-- Lantern room -->
+                <rect x="141" y="78" width="38" height="42" rx="3" fill="#253550" stroke="#4a6080" stroke-width="1"/>
+
+                <!-- Lantern glass -->
+                <rect x="145" y="82" width="30" height="34" rx="2" fill="#0a1525" opacity="0.8"/>
+
+                <!-- Roof -->
+                <polygon points="160,55 136,80 184,80" fill="#3d4f6e"/>
+
+                <!-- Antenna -->
+                <line x1="160" y1="40" x2="160" y2="58" stroke="#4a6080" stroke-width="2"/>
+
+                <!-- Antenna light -->
+                <circle class="antenna-light" cx="160" cy="38" r="3" fill="#4de8d2"/>
+
+                <!-- Light glow -->
+                <circle class="light-glow" cx="160" cy="99" r="18" fill="url(#glowGrad)"/>
+
+                <!-- Light core -->
+                <circle class="light-core" cx="160" cy="99" r="8" fill="#fff"/>
+
+                <!-- Water lines -->
+                <line class="water-line" style="--wd:4s;--wdel:0s" x1="50" y1="348" x2="100" y2="348" stroke="#1a2e4a" stroke-width="2" stroke-linecap="round"/>
+                <line class="water-line" style="--wd:5s;--wdel:1s" x1="200" y1="352" x2="270" y2="352" stroke="#1a2e4a" stroke-width="2" stroke-linecap="round"/>
+                <line class="water-line" style="--wd:4.5s;--wdel:0.5s" x1="80" y1="358" x2="140" y2="358" stroke="#1a2e4a" stroke-width="1.5" stroke-linecap="round"/>
+                <line class="water-line" style="--wd:3.5s;--wdel:1.5s" x1="180" y1="362" x2="250" y2="362" stroke="#1a2e4a" stroke-width="1.5" stroke-linecap="round"/>
+
+                <!-- Ground/island surface -->
+                <ellipse cx="160" cy="335" rx="65" ry="8" fill="#12203a" opacity="0.6"/>
+            </svg>
+        </div>
+
         <div class="badge">Open Source &middot; MIT License</div>
-        <h1>Know what you're <em>really</em> installing</h1>
-        <p>GardWatch scores your dependencies on trust, security, and quality &mdash; catching supply chain threats that vulnerability scanners miss.</p>
+        <h1 class="hero-title">DepSentry</h1>
+        <p class="hero-subtitle">Dependency Intelligence</p>
+        <p class="hero-desc">Scores your dependencies on trust, security, and quality &mdash; catching supply chain threats that vulnerability scanners miss.</p>
         <div class="cta-group">
-            <a href="https://github.com/GarderaSecurity/gardwatch" class="btn btn-primary">Get Started</a>
-            <a href="https://github.com/GarderaSecurity/gardwatch#usage" class="btn btn-secondary">Read the Docs</a>
+            <a href="https://github.com/GarderaSecurity/depsentry" class="btn btn-primary">Get Started</a>
+            <a href="https://github.com/GarderaSecurity/depsentry#usage" class="btn btn-secondary">Read the Docs</a>
         </div>
 
         <div class="terminal">
             <div class="terminal-bar"><span></span><span></span><span></span></div>
             <div class="terminal-body">
-                <div><span class="prompt">$</span> <span class="cmd">gardwatch analyze requirements.txt</span></div>
-                <br>
-                <div><span class="output">Scanning 12 packages...</span></div>
-                <br>
-                <div><span class="ok">  [98/100]</span> <span class="cmd">requests</span> <span class="output">- Well maintained, high trust</span></div>
-                <div><span class="ok">  [91/100]</span> <span class="cmd">flask</span> <span class="output">- Mature, widely adopted</span></div>
-                <div><span class="warn">  [42/100]</span> <span class="cmd">colorlib</span> <span class="output">- Low downloads, no repo link</span></div>
-                <div><span class="crit">  [ 0/100]</span> <span class="cmd">req-uests</span> <span class="output">- TYPOSQUAT DETECTED</span></div>
+                <div class="terminal-line"><span class="prompt">$</span> <span class="cmd">depsentry analyze requirements.txt</span></div>
+                <div class="terminal-line"><br></div>
+                <div class="terminal-line"><span class="output">Scanning 12 packages...</span></div>
+                <div class="terminal-line"><br></div>
+                <div class="terminal-line"><span class="ok">  [98/100]</span> <span class="cmd">requests</span> <span class="output">- Well maintained, high trust</span></div>
+                <div class="terminal-line"><span class="warn">  [42/100]</span> <span class="cmd">colorlib</span> <span class="output">- Low downloads, no repo link</span></div>
+                <div class="terminal-line"><span class="crit">  [ 0/100]</span> <span class="cmd">req-uests</span> <span class="output">- TYPOSQUAT DETECTED</span></div>
             </div>
         </div>
     </section>
@@ -329,7 +631,43 @@
     </section>
 
     <footer>
-        Built by <a href="https://github.com/GarderaSecurity">Gardera Security</a> &middot; <a href="https://github.com/GarderaSecurity/gardwatch">View on GitHub</a>
+        Built by <a href="https://github.com/GarderaSecurity">Gardera Security</a> &middot; <a href="https://github.com/GarderaSecurity/depsentry">View on GitHub</a>
     </footer>
+
+    <script>
+        // Generate starfield
+        (function() {
+            const container = document.getElementById('stars');
+            const count = 80;
+            for (let i = 0; i < count; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 70 + '%';
+                star.style.setProperty('--dur', (3 + Math.random() * 5) + 's');
+                star.style.setProperty('--peak', (0.3 + Math.random() * 0.7).toFixed(2));
+                star.style.animationDelay = (Math.random() * 5) + 's';
+                const size = Math.random() > 0.85 ? 3 : Math.random() > 0.6 ? 2 : 1;
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                container.appendChild(star);
+            }
+        })();
+
+        // Intersection observer for feature cards
+        (function() {
+            const features = document.querySelectorAll('.feature');
+            const observer = new IntersectionObserver(function(entries) {
+                entries.forEach(function(entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.style.transitionDelay = (Array.from(features).indexOf(entry.target) % 3) * 0.15 + 's';
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.15 });
+            features.forEach(function(f) { observer.observe(f); });
+        })();
+    </script>
 </body>
 </html>
