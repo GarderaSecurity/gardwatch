@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/gardwatch.jpg" alt="GardWatch" width="300">
+</p>
+
 # GardWatch 🛡️
 
 **GardWatch** is a powerful CLI tool designed to secure your software supply chain by analyzing dependencies for trust, security risks, and quality signals. It goes beyond simple vulnerability scanning by evaluating the "health" and "trustworthiness" of a package using a composite scoring system.
