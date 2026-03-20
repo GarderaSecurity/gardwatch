@@ -1,5 +1,6 @@
 import json
 import xml.etree.ElementTree as ET
+import defusedxml.ElementTree as DET
 from pathlib import Path
 from typing import AsyncIterator, Optional, Tuple
 import urllib.parse
@@ -50,7 +51,7 @@ class CycloneDXParser(DependencyParser):
 
     async def _parse_xml(self, file_path: Path) -> AsyncIterator[Dependency]:
         try:
-            tree = ET.parse(file_path)
+            tree = DET.parse(file_path)
             root = tree.getroot()
             
             # XML Namespaces are annoying, ignore them for tag searching if possible
