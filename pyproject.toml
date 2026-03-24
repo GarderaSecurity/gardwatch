@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gardwatch"
+version = "0.1.0"
+description = "A powerful CLI tool to secure your software supply chain by analyzing dependencies for trust, security risks, and quality signals"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+authors = [
+    {name = "Gardera Security", email = "info@gardera.com"}
+]
+keywords = ["security", "supply-chain", "dependencies", "vulnerability", "scanning"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: Software Development :: Quality Assurance",
+]
+
+dependencies = [
+    "httpx",
+    "rich",
+    "pydantic",
+    "tenacity",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy",
+    "pytest",
+]
+
+[project.urls]
+Homepage = "https://github.com/GarderaSecurity/gardwatch"
+Repository = "https://github.com/GarderaSecurity/gardwatch"
+Issues = "https://github.com/GarderaSecurity/gardwatch/issues"
+
+[project.scripts]
+gardwatch = "gardwatch.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["gardwatch*"]
