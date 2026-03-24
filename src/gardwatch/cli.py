@@ -3,6 +3,7 @@ import argparse
 import sys
 import logging
 from pathlib import Path
+from typing import Optional
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
@@ -110,7 +111,27 @@ async def analyze_dependencies(dependencies: list[Dependency], engine: TrustEngi
                     async with semaphore:
                         # 1. Fetch Package Info AND Version Details
                         package_info, version_details = await deps_client.get_package_and_version(dep)
-                        
+
+                        # If package not found, return error report
+                        if package_info is None:
+                            from .models import ScoreComponent
+                            error_report = TrustReport(
+                                status="CRITICAL",
+                                score=0,
+                                reason="Package not found",
+                                components=[
+                                    ScoreComponent(
+                                        label="Package Not Found",
+                                        score=0,
+                                        description=f"Package '{dep.name}' not found in {dep.ecosystem} registry",
+                                        category="Error"
+                                    )
+                                ],
+                                details=[f"Package '{dep.name}' does not exist in {dep.ecosystem}"]
+                            )
+                            progress.update(task, advance=1)
+                            return dep, error_report
+
                         # 2. Fetch Downloads
                         download_count = None
                         client = clients.get(dep.ecosystem)
@@ -132,9 +153,13 @@ async def analyze_dependencies(dependencies: list[Dependency], engine: TrustEngi
                                     scorecard = project_data.get("scorecard")
         
                         report = engine.evaluate(dep, package_info, version_details, scorecard, download_count, project_data)
-                        
+
                         if deep_scan and version_details:
+                            logging.info(f"Starting deep scan for {dep.name}")
+                            check_summary = scanner.get_check_summary()
+                            logging.info(f"Deep scan checks: {check_summary}")
                             version = version_details.get("versionKey", {}).get("version")
+                            logging.info(f"Version: {version}")
                             dl_url = None
                             if dep.ecosystem == "npm":
                                 dl_url = await registry_client.get_npm_download_url(dep.name, version)
@@ -143,20 +168,59 @@ async def analyze_dependencies(dependencies: list[Dependency], engine: TrustEngi
                             else:
                                 if deep_scan:
                                     console.print(f"[yellow]Warning: Deep scan source download not yet supported for {dep.ecosystem}[/yellow]")
-                            
+
+                            logging.info(f"Download URL: {dl_url}")
+                            from .models import ScoreComponent
+
+                            # Get total check count for display
+                            total_checks = len([c for c in scanner.CHECKS if c.enabled]) + len(scanner.AST_CHECKS)
+
                             if dl_url:
                                 try:
+                                    logging.info(f"Downloading and extracting package...")
                                     async with downloader.download_and_extract(dl_url) as extract_path:
+                                        logging.info(f"Extracted to {extract_path}, scanning...")
                                         findings = scanner.scan_directory(extract_path)
+                                        logging.info(f"Scan complete. Findings: {len(findings) if findings else 0}")
+
                                         if findings:
                                             report.score = 0
                                             report.status = "CRITICAL"
-                                            # Pydantic update
-                                            from .models import ScoreComponent
-                                            report.components.append(ScoreComponent(label="Deep Scan", score=-100, description="Malicious patterns found", category="Security"))
+                                            report.components.append(ScoreComponent(
+                                                label="Deep Scan",
+                                                score=-100,
+                                                description=f"Malicious patterns detected ({len(findings)} issues found in {total_checks} checks)",
+                                                category="Security"
+                                            ))
                                             report.details.extend(findings)
-                                except Exception:
-                                    pass
+                                        else:
+                                            report.components.append(ScoreComponent(
+                                                label="Deep Scan",
+                                                score=0,
+                                                description=f"Passed all {total_checks} security checks",
+                                                category="Security"
+                                            ))
+                                except Exception as e:
+                                    logging.error(f"Deep scan failed for {dep.name}: {type(e).__name__}: {e}")
+                                    import traceback
+                                    logging.debug(traceback.format_exc())
+                                    report.components.append(ScoreComponent(
+                                        label="Deep Scan",
+                                        score=0,
+                                        description=f"Scan failed: {type(e).__name__}",
+                                        category="Security"
+                                    ))
+                            else:
+                                # Package cannot be downloaded - critical failure
+                                report.score = 0
+                                report.status = "CRITICAL"
+                                report.components.append(ScoreComponent(
+                                    label="Deep Scan",
+                                    score=-100,
+                                    description="Package not downloadable from registry",
+                                    category="Security"
+                                ))
+                                report.details.append(f"Package exists in metadata but cannot be downloaded from {dep.ecosystem} registry")
         
                         progress.update(task, advance=1)
                         return dep, report
@@ -239,10 +303,11 @@ async def run_analysis(files: list[str], deep: bool, force_sbom: bool = False):
         console.print("\n[bold green]SUCCESS:[/bold green] No critical risks found.")
         sys.exit(0)
 
-async def run_scan(package: str, ecosystem: str, deep: bool):
+async def run_scan(package: str, ecosystem: str, deep: bool, version: Optional[str] = None):
     engine = TrustEngine()
-    dep = Dependency(name=package, ecosystem=ecosystem)
-    is_critical = await analyze_dependencies([dep], engine, f"Analysis of {package} ({ecosystem})", deep, show_safe=True)
+    dep = Dependency(name=package, ecosystem=ecosystem, version=version)
+    version_str = f"@{version}" if version else ""
+    is_critical = await analyze_dependencies([dep], engine, f"Analysis of {package}{version_str} ({ecosystem})", deep, show_safe=True)
     if is_critical:
         sys.exit(1)
 
@@ -260,9 +325,10 @@ def main():
     # Scan single package command
     scan_parser = subparsers.add_parser("scan", help="Scan a single package")
     scan_parser.add_argument("package", help="Package name")
+    scan_parser.add_argument("--version", help="Specific version to scan (optional, defaults to latest)")
     scan_parser.add_argument("--deep", action="store_true", help="Perform deep code analysis (downloads packages)")
     scan_parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
-    
+
     group = scan_parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--npm", action="store_true", help="Check as npm package")
     group.add_argument("--pypi", action="store_true", help="Check as PyPI package")
@@ -291,8 +357,9 @@ def main():
         elif args.cargo: ecosystem = "cargo"
         elif args.maven: ecosystem = "maven"
         elif args.nuget: ecosystem = "nuget"
-        
-        asyncio.run(run_scan(args.package, ecosystem, args.deep))
+
+        version = getattr(args, "version", None)
+        asyncio.run(run_scan(args.package, ecosystem, args.deep, version))
     else:
         parser.print_help()
 
