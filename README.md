@@ -23,6 +23,23 @@
 
 GardWatch requires Python 3.12+.
 
+### Option 1: Install via pip (Recommended)
+
+```bash
+# Install from source
+pip install git+https://github.com/GarderaSecurity/gardwatch.git
+
+# Or clone and install locally
+git clone https://github.com/GarderaSecurity/gardwatch.git
+cd gardwatch
+pip install .
+
+# For development installation (editable)
+pip install -e .
+```
+
+### Option 2: Using Pipenv (Development)
+
 ```bash
 # Clone the repository
 git clone https://github.com/GarderaSecurity/gardwatch.git
@@ -39,13 +56,13 @@ Scan your project's dependency files to get a full health report.
 
 ```bash
 # Analyze a Python requirements file
-python3 -m src.gardwatch.cli analyze requirements.txt
+gardwatch analyze requirements.txt
 
 # Analyze a Node.js package.json
-python3 -m src.gardwatch.cli analyze package.json
+gardwatch analyze package.json
 
 # Analyze multiple files
-python3 -m src.gardwatch.cli analyze requirements.txt package.json Cargo.toml
+gardwatch analyze requirements.txt package.json Cargo.toml
 ```
 
 **Options:**
@@ -58,13 +75,13 @@ Check a single package before you install it.
 
 ```bash
 # Check a PyPI package
-python3 -m src.gardwatch.cli scan requests --pypi
+gardwatch scan requests --pypi
 
 # Check an npm package
-python3 -m src.gardwatch.cli scan react --npm
+gardwatch scan react --npm
 
 # Check a Rust crate
-python3 -m src.gardwatch.cli scan serde --cargo
+gardwatch scan serde --cargo
 ```
 
 **Supported Flags:** `--pypi`, `--npm`, `--go`, `--cargo`, `--maven`, `--nuget`.
