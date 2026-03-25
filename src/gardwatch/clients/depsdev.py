@@ -87,7 +87,50 @@ class DepsDevClient:
             logger.debug(f"HTTP error fetching version details for {name}@{target_version}: {e}")
             pass
 
+        # 4. Fallback: if specified version doesn't exist, try default/latest
+        if not version_details and dependency.version:
+            logger.info(f"Version {target_version} not found for {name}, falling back to default/latest version")
+            # Find default or latest version
+            fallback_version = None
+            for v in package_info.get("versions", []):
+                if v.get("isDefault"):
+                    fallback_version = v["versionKey"]["version"]
+                    break
+            if not fallback_version and package_info.get("versions"):
+                fallback_version = package_info["versions"][0]["versionKey"]["version"]
+
+            if fallback_version:
+                ver_url = f"{self.BASE_URL}/systems/{system}/packages/{name}/versions/{fallback_version}"
+                try:
+                    resp = await self._make_request(ver_url)
+                    if resp and resp.status_code == 200:
+                        version_details = resp.json()
+                        logger.info(f"Using version {fallback_version} for {name} instead of {target_version}")
+                except httpx.HTTPError as e:
+                    logger.debug(f"HTTP error fetching fallback version {fallback_version}: {e}")
+                    pass
+
         return package_info, version_details
+
+    async def get_dependents(self, dependency: Dependency) -> Optional[int]:
+        """Fetch the number of packages that depend on this version."""
+        system = self._get_system(dependency.ecosystem).upper()
+        name = urllib.parse.quote(dependency.name, safe='')
+        version = dependency.version
+
+        if not version:
+            return None
+
+        url = f"{self.BASE_URL}/systems/{system}/packages/{name}/versions/{version}:dependents"
+        try:
+            response = await self._make_request(url)
+            if response and response.status_code == 200:
+                data = response.json()
+                return data.get("dependentCount", 0)
+        except httpx.HTTPError as e:
+            logger.debug(f"HTTP error fetching dependents for {name}@{version}: {e}")
+            pass
+        return None
 
     async def get_project_data(self, project_key_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -95,7 +138,7 @@ class DepsDevClient:
         """
         encoded_id = urllib.parse.quote(project_key_id, safe='')
         url = f"{self.BASE_URL}/projects/{encoded_id}"
-        
+
         try:
             response = await self._make_request(url)
             if not response or response.status_code != 200:

@@ -7,13 +7,14 @@ class TrustEngine:
         self.registry = create_default_registry()
 
     def evaluate(
-        self, 
-        dependency: Dependency, 
-        package_info: Optional[Dict[str, Any]], 
-        version_details: Optional[Dict[str, Any]], 
-        scorecard: Optional[Dict[str, Any]], 
+        self,
+        dependency: Dependency,
+        package_info: Optional[Dict[str, Any]],
+        version_details: Optional[Dict[str, Any]],
+        scorecard: Optional[Dict[str, Any]],
         download_count: Optional[int] = None,
-        project_data: Optional[Dict[str, Any]] = None
+        project_data: Optional[Dict[str, Any]] = None,
+        dependent_count: Optional[int] = None
     ) -> TrustReport:
         
         # Parse into Pydantic models (soft validation)
@@ -37,7 +38,8 @@ class TrustEngine:
             version_details=ver_model,
             scorecard=sc_model,
             download_count=download_count,
-            project_data=proj_model
+            project_data=proj_model,
+            dependent_count=dependent_count
         )
 
         # Baseline

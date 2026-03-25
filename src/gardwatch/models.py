@@ -49,6 +49,7 @@ class DepsDevVersionDetails(BaseModel):
     versionKey: DepsDevVersionKey
     publishedAt: Optional[str] = None
     isDefault: bool = False
+    isDeprecated: bool = False
     links: List[DepsDevLink] = Field(default_factory=list)
     advisoryKeys: List[DepsDevAdvisoryKey] = Field(default_factory=list)
     relatedProjects: List[DepsDevRelatedProject] = Field(default_factory=list)
@@ -66,6 +67,9 @@ class DepsDevProject(BaseModel):
     projectKey: DepsDevProjectKey
     scorecard: Optional[OpenSSFScorecard] = None
     description: Optional[str] = None
+    starsCount: Optional[int] = None
+    forksCount: Optional[int] = None
+    openIssuesCount: Optional[int] = None
 
 # --- Check Context ---
 
@@ -76,6 +80,7 @@ class CheckContext(BaseModel):
     project_data: Optional[DepsDevProject] = None
     scorecard: Optional[OpenSSFScorecard] = None
     download_count: Optional[int] = None
+    dependent_count: Optional[int] = None
 
 class PackageMetadata(BaseModel):
     name: str

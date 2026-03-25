@@ -144,15 +144,24 @@ async def analyze_dependencies(dependencies: list[Dependency], engine: TrustEngi
                         if version_details:
                             projects = version_details.get("relatedProjects", [])
                             source_project = next(
-                                (p["projectKey"]["id"] for p in projects if p.get("relationType") == "SOURCE_REPO"), 
+                                (p["projectKey"]["id"] for p in projects if p.get("relationType") == "SOURCE_REPO"),
                                 None
                             )
                             if source_project:
                                 project_data = await deps_client.get_project_data(source_project)
                                 if project_data:
                                     scorecard = project_data.get("scorecard")
-        
-                        report = engine.evaluate(dep, package_info, version_details, scorecard, download_count, project_data)
+
+                        # 4. Fetch Dependent Count
+                        dependent_count = None
+                        if version_details:
+                            # Use the actual version that was found, not the original constraint
+                            actual_version = version_details.get("versionKey", {}).get("version")
+                            if actual_version:
+                                version_dep = Dependency(name=dep.name, version=actual_version, ecosystem=dep.ecosystem)
+                                dependent_count = await deps_client.get_dependents(version_dep)
+
+                        report = engine.evaluate(dep, package_info, version_details, scorecard, download_count, project_data, dependent_count)
 
                         if deep_scan and version_details:
                             logging.info(f"Starting deep scan for {dep.name}")
