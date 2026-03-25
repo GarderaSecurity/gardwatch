@@ -346,19 +346,19 @@ class SourceScanner:
                         if re.search(check.pattern, content):
                             finding = f"{check.description} in {file}"
                             file_findings.append(finding)
-                            logger.warning(f"    ⚠️  FOUND: {check.description}")
+                            logger.debug(f"    ⚠️  FOUND: {check.description}")
 
                     # 2. Python AST Scan (only on setup files to avoid false positives)
                     if file_path.suffix == ".py" and is_setup_file:
                         logger.debug(f"    Running Python AST analysis...")
                         ast_findings = self._scan_python_ast(content, file)
                         for finding in ast_findings:
-                            logger.warning(f"    ⚠️  FOUND: {finding}")
+                            logger.debug(f"    ⚠️  FOUND: {finding}")
                         file_findings.extend(ast_findings)
 
                     # 3. Flag .pth files (executed at Python startup)
                     if file_path.suffix == ".pth":
-                        logger.warning(f"    ⚠️  .pth file detected (executes at Python startup)")
+                        logger.debug(f"    ⚠️  .pth file detected (executes at Python startup)")
                         file_findings.append(f".pth file present: {file} (auto-executed at Python startup)")
 
                     if not file_findings:
