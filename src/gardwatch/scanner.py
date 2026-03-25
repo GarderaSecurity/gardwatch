@@ -36,24 +36,16 @@ class SourceScanner:
     CHECKS = [
         # Python checks
         SecurityCheck(
-            name="py_eval_detection",
-            description="Use of eval() (code execution)",
-            pattern=r"eval\(",
-            category="code_execution",
-            languages=["python"],
-            setup_only=True
-        ),
-        SecurityCheck(
-            name="py_exec_detection",
-            description="Use of exec() (code execution)",
-            pattern=r"exec\(",
+            name="py_code_execution",
+            description="Dynamic code execution (eval/exec/compile)",
+            pattern=r"(eval\(|exec\(|compile\()",
             category="code_execution",
             languages=["python"],
             setup_only=True
         ),
         SecurityCheck(
             name="py_base64_exec",
-            description="Base64 decode with exec (code execution)",
+            description="Base64 decode with exec (obfuscated code execution)",
             pattern=r"(base64\.b64decode.*exec\(|exec\(.*base64\.b64decode)",
             category="code_execution",
             languages=["python"],
@@ -68,49 +60,17 @@ class SourceScanner:
             file_extensions=[".pth"]
         ),
         SecurityCheck(
-            name="py_subprocess_call",
-            description="Process execution (subprocess.call)",
-            pattern=r"subprocess\.call",
+            name="py_shell_execution",
+            description="Shell/process execution (subprocess/os.system/os.popen/pty.spawn)",
+            pattern=r"(subprocess\.(call|check_call|check_output|run|Popen)|os\.(system|popen|spawn[lv]p?e?)|pty\.spawn|commands\.(getoutput|getstatusoutput))",
             category="process",
             setup_only=True,
             languages=["python"]
         ),
         SecurityCheck(
-            name="py_subprocess_popen",
-            description="Process execution (subprocess.Popen)",
-            pattern=r"subprocess\.Popen",
-            category="process",
-            setup_only=True,
-            languages=["python"]
-        ),
-        SecurityCheck(
-            name="py_os_system",
-            description="Shell execution (os.system)",
-            pattern=r"os\.system",
-            category="process",
-            setup_only=True,
-            languages=["python"]
-        ),
-        SecurityCheck(
-            name="py_socket_creation",
-            description="Socket creation (possible C2 connection)",
-            pattern=r"socket\.socket",
-            category="network",
-            setup_only=True,
-            languages=["python"]
-        ),
-        SecurityCheck(
-            name="py_urlopen",
-            description="Network request (urllib.urlopen)",
-            pattern=r"urlopen\(",
-            category="network",
-            setup_only=True,
-            languages=["python"]
-        ),
-        SecurityCheck(
-            name="py_requests_get",
-            description="Network request (requests.get)",
-            pattern=r"requests\.get",
+            name="py_network_activity",
+            description="Network activity (socket/urllib/requests/httpx)",
+            pattern=r"(socket\.socket|urlopen\(|requests\.(get|post|put|delete|request)|httpx\.(get|post|Client))",
             category="network",
             setup_only=True,
             languages=["python"]
@@ -118,40 +78,33 @@ class SourceScanner:
 
         # JavaScript/Node.js checks
         SecurityCheck(
-            name="js_eval",
-            description="Use of eval() (code execution)",
-            pattern=r"eval\(",
+            name="js_code_execution",
+            description="Dynamic code execution (eval/Function)",
+            pattern=r"(eval\(|Function\()",
             category="code_execution",
-            languages=["javascript"]
+            languages=["javascript"],
+            setup_only=True
         ),
         SecurityCheck(
-            name="js_child_process_exec",
-            description="Process execution (child_process.exec)",
-            pattern=r"(require\(['\"]child_process['\"]\)|child_process)\.(exec|execSync|spawn|spawnSync)",
+            name="js_shell_execution",
+            description="Shell/process execution (child_process)",
+            pattern=r"(require\(['\"]child_process['\"]\)|child_process)\.(exec|execSync|spawn|spawnSync|fork)",
             category="process",
             setup_only=True,
             languages=["javascript"]
         ),
         SecurityCheck(
-            name="js_fs_read",
-            description="File system access (fs.readFile)",
-            pattern=r"(require\(['\"]fs['\"]\)|fs)\.(readFile|readFileSync|readdir|readdirSync)",
+            name="js_file_access",
+            description="File system access (fs module)",
+            pattern=r"(require\(['\"]fs['\"]\)|fs)\.(readFile|readFileSync|readdir|readdirSync|writeFile|writeFileSync)",
             category="file_access",
             setup_only=True,
             languages=["javascript"]
         ),
         SecurityCheck(
-            name="js_network_http",
-            description="Network request (http/https)",
-            pattern=r"require\(['\"]https?['\"]",
-            category="network",
-            setup_only=True,
-            languages=["javascript"]
-        ),
-        SecurityCheck(
-            name="js_fetch",
-            description="Network request (fetch)",
-            pattern=r"fetch\(",
+            name="js_network_activity",
+            description="Network activity (http/https/fetch)",
+            pattern=r"(require\(['\"]https?['\"]\)|fetch\(|axios\.(get|post))",
             category="network",
             setup_only=True,
             languages=["javascript"]
@@ -159,16 +112,9 @@ class SourceScanner:
 
         # Shell/generic checks
         SecurityCheck(
-            name="curl_usage",
-            description="Curl usage in shell/script",
-            pattern=r"curl\s+",
-            category="network",
-            setup_only=True
-        ),
-        SecurityCheck(
-            name="wget_usage",
-            description="Wget usage in shell/script",
-            pattern=r"wget\s+",
+            name="shell_download_tools",
+            description="Shell download tools (curl/wget)",
+            pattern=r"(curl\s+|wget\s+)",
             category="network",
             setup_only=True
         ),
@@ -182,7 +128,84 @@ class SourceScanner:
         SecurityCheck(
             name="ssh_keys",
             description="Accessing SSH private keys",
-            pattern=r"\.ssh/id_rsa",
+            pattern=r"\.ssh/(id_rsa|id_ed25519|id_ecdsa|id_dsa|authorized_keys|known_hosts|config)",
+            category="file_access",
+            setup_only=True
+        ),
+        SecurityCheck(
+            name="cloud_metadata_server",
+            description="Accessing cloud metadata server (credential theft)",
+            pattern=r"(169\.254\.169\.254|metadata\.google\.internal|169\.254\.170\.2)",
+            category="network",
+            setup_only=True
+        ),
+        SecurityCheck(
+            name="aws_credentials",
+            description="Accessing AWS credentials",
+            pattern=r"\.aws/(credentials|config)",
+            category="file_access",
+            setup_only=True
+        ),
+        SecurityCheck(
+            name="gcp_credentials",
+            description="Accessing GCP credentials",
+            pattern=r"\.config/gcloud",
+            category="file_access",
+            setup_only=True
+        ),
+        SecurityCheck(
+            name="azure_credentials",
+            description="Accessing Azure credentials",
+            pattern=r"\.azure/",
+            category="file_access",
+            setup_only=True
+        ),
+        SecurityCheck(
+            name="bitcoin_wallet",
+            description="Accessing Bitcoin wallet",
+            pattern=r"(\.bitcoin/(bitcoin\.conf|wallet\.dat)|wallet\.dat)",
+            category="file_access",
+            setup_only=True
+        ),
+        SecurityCheck(
+            name="ethereum_wallet",
+            description="Accessing Ethereum wallet",
+            pattern=r"\.ethereum/keystore",
+            category="file_access",
+            setup_only=True
+        ),
+        SecurityCheck(
+            name="crypto_wallets",
+            description="Accessing cryptocurrency wallets",
+            pattern=r"\.(solana|litecoin|dogecoin|zcash|dash|ripple)/",
+            category="file_access",
+            setup_only=True
+        ),
+        SecurityCheck(
+            name="k8s_secrets",
+            description="Accessing Kubernetes secrets API",
+            pattern=r"/api/v1/(namespaces/[^/]+/)?secrets",
+            category="network",
+            setup_only=True
+        ),
+        SecurityCheck(
+            name="systemd_persistence",
+            description="Creating systemd service (persistence mechanism)",
+            pattern=r"(\.config/systemd/user/|/etc/systemd/system/|systemctl\s+enable)",
+            category="process",
+            setup_only=True
+        ),
+        SecurityCheck(
+            name="env_dump",
+            description="Dumping environment variables",
+            pattern=r"(printenv|os\.environ\[|getenv\()",
+            category="process",
+            setup_only=True
+        ),
+        SecurityCheck(
+            name="passwd_file",
+            description="Accessing /etc/passwd",
+            pattern=r"/etc/passwd",
             category="file_access",
             setup_only=True
         ),
