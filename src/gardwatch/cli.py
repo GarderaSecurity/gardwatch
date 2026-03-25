@@ -11,7 +11,7 @@ from rich.text import Text
 from rich.progress import Progress, SpinnerColumn, TextColumn
 import httpx
 
-from .parsers.python import RequirementsTxtParser
+from .parsers.python import RequirementsTxtParser, PyprojectTomlParser
 from .parsers.javascript import PackageJsonParser
 from .parsers.pipfile import PipfileParser
 from .parsers.go import GoModParser
@@ -254,8 +254,9 @@ async def run_analysis(files: list[str], deep: bool, force_sbom: bool = False):
     
     # Standard parsers
     standard_parsers = [
-        RequirementsTxtParser(), 
-        PackageJsonParser(), 
+        RequirementsTxtParser(),
+        PyprojectTomlParser(),
+        PackageJsonParser(),
         PipfileParser(),
         GoModParser(),
         CargoTomlParser(),

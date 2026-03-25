@@ -4,7 +4,7 @@ import os
 import logging
 from pathlib import Path
 from typing import List, Dict, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
 
