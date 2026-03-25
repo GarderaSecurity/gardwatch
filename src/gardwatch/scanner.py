@@ -17,58 +17,147 @@ class SecurityCheck:
     category: str  # e.g., "code_execution", "network", "file_access", "process"
     setup_only: bool = False  # Only check in setup/install files
     enabled: bool = True
+    languages: List[str] = field(default_factory=list)  # e.g., ["python", "javascript"], empty = all languages
+    file_extensions: List[str] = field(default_factory=list)  # e.g., [".pth"], empty = all extensions
 
 class SourceScanner:
+    # Ecosystem file extension mappings
+    ECOSYSTEM_FILE_EXTENSIONS = {
+        'pypi': ['.py', '.pth'],
+        'npm': ['.js', '.mjs', '.cjs'],
+    }
+
+    ECOSYSTEM_SETUP_FILES = {
+        'pypi': ['setup.py'],
+        'npm': ['package.json', 'install.js', 'preinstall.js', 'postinstall.js'],
+    }
+
     # Registry of all security checks
     CHECKS = [
+        # Python checks
         SecurityCheck(
-            name="eval_detection",
+            name="py_eval_detection",
             description="Use of eval() (code execution)",
             pattern=r"eval\(",
-            category="code_execution"
+            category="code_execution",
+            languages=["python"],
+            setup_only=True
         ),
         SecurityCheck(
-            name="subprocess_call",
+            name="py_exec_detection",
+            description="Use of exec() (code execution)",
+            pattern=r"exec\(",
+            category="code_execution",
+            languages=["python"],
+            setup_only=True
+        ),
+        SecurityCheck(
+            name="py_base64_exec",
+            description="Base64 decode with exec (code execution)",
+            pattern=r"(base64\.b64decode.*exec\(|exec\(.*base64\.b64decode)",
+            category="code_execution",
+            languages=["python"],
+            setup_only=True
+        ),
+        SecurityCheck(
+            name="py_import_semicolon",
+            description="Import with semicolon (malicious payload)",
+            pattern=r"^import\s+[,.\s\w]+;\s*\S",
+            category="code_execution",
+            languages=["python"],
+            file_extensions=[".pth"]
+        ),
+        SecurityCheck(
+            name="py_subprocess_call",
             description="Process execution (subprocess.call)",
             pattern=r"subprocess\.call",
             category="process",
-            setup_only=True
+            setup_only=True,
+            languages=["python"]
         ),
         SecurityCheck(
-            name="subprocess_popen",
+            name="py_subprocess_popen",
             description="Process execution (subprocess.Popen)",
             pattern=r"subprocess\.Popen",
             category="process",
-            setup_only=True
+            setup_only=True,
+            languages=["python"]
         ),
         SecurityCheck(
-            name="os_system",
+            name="py_os_system",
             description="Shell execution (os.system)",
             pattern=r"os\.system",
             category="process",
-            setup_only=True
+            setup_only=True,
+            languages=["python"]
         ),
         SecurityCheck(
-            name="socket_creation",
+            name="py_socket_creation",
             description="Socket creation (possible C2 connection)",
             pattern=r"socket\.socket",
             category="network",
-            setup_only=True
+            setup_only=True,
+            languages=["python"]
         ),
         SecurityCheck(
-            name="urlopen",
+            name="py_urlopen",
             description="Network request (urllib.urlopen)",
             pattern=r"urlopen\(",
             category="network",
-            setup_only=True
+            setup_only=True,
+            languages=["python"]
         ),
         SecurityCheck(
-            name="requests_get",
+            name="py_requests_get",
             description="Network request (requests.get)",
             pattern=r"requests\.get",
             category="network",
-            setup_only=True
+            setup_only=True,
+            languages=["python"]
         ),
+
+        # JavaScript/Node.js checks
+        SecurityCheck(
+            name="js_eval",
+            description="Use of eval() (code execution)",
+            pattern=r"eval\(",
+            category="code_execution",
+            languages=["javascript"]
+        ),
+        SecurityCheck(
+            name="js_child_process_exec",
+            description="Process execution (child_process.exec)",
+            pattern=r"(require\(['\"]child_process['\"]\)|child_process)\.(exec|execSync|spawn|spawnSync)",
+            category="process",
+            setup_only=True,
+            languages=["javascript"]
+        ),
+        SecurityCheck(
+            name="js_fs_read",
+            description="File system access (fs.readFile)",
+            pattern=r"(require\(['\"]fs['\"]\)|fs)\.(readFile|readFileSync|readdir|readdirSync)",
+            category="file_access",
+            setup_only=True,
+            languages=["javascript"]
+        ),
+        SecurityCheck(
+            name="js_network_http",
+            description="Network request (http/https)",
+            pattern=r"require\(['\"]https?['\"]",
+            category="network",
+            setup_only=True,
+            languages=["javascript"]
+        ),
+        SecurityCheck(
+            name="js_fetch",
+            description="Network request (fetch)",
+            pattern=r"fetch\(",
+            category="network",
+            setup_only=True,
+            languages=["javascript"]
+        ),
+
+        # Shell/generic checks
         SecurityCheck(
             name="curl_usage",
             description="Curl usage in shell/script",
@@ -87,13 +176,15 @@ class SourceScanner:
             name="etc_shadow",
             description="Accessing /etc/shadow",
             pattern=r"/etc/shadow",
-            category="file_access"
+            category="file_access",
+            setup_only=True
         ),
         SecurityCheck(
             name="ssh_keys",
             description="Accessing SSH private keys",
             pattern=r"\.ssh/id_rsa",
-            category="file_access"
+            category="file_access",
+            setup_only=True
         ),
         # Disabled checks
         # SecurityCheck(
@@ -136,13 +227,19 @@ class SourceScanner:
 
         return "; ".join(summary_parts)
 
-    def scan_directory(self, dir_path: Path) -> List[str]:
+    def scan_directory(self, dir_path: Path, ecosystem: Optional[str] = None) -> List[str]:
+        """Scan a directory for malicious patterns.
+
+        Args:
+            dir_path: Path to directory to scan
+            ecosystem: Package ecosystem (e.g., 'pypi', 'npm'). Used to filter language-specific checks.
+        """
         findings = []
         file_count = 0
         skipped_count = 0
         scanned_count = 0
 
-        logger.info(f"Starting directory scan of {dir_path}")
+        logger.info(f"Starting directory scan of {dir_path} (ecosystem: {ecosystem})")
 
         for root, _, files in os.walk(dir_path):
             for file in files:
@@ -162,10 +259,31 @@ class SourceScanner:
                     skipped_count += 1
                     continue
 
-                is_setup_file = file in ["setup.py", "install.js", "preinstall.js", "postinstall.js"]
+                # Skip files not relevant to the ecosystem
+                if ecosystem and ecosystem in self.ECOSYSTEM_FILE_EXTENSIONS:
+                    allowed_extensions = self.ECOSYSTEM_FILE_EXTENSIONS[ecosystem]
+                    allowed_setup_files = self.ECOSYSTEM_SETUP_FILES.get(ecosystem, [])
+                    if file_path.suffix not in allowed_extensions and file not in allowed_setup_files:
+                        logger.debug(f"  Skipping file not relevant to {ecosystem}: {rel_path}")
+                        skipped_count += 1
+                        continue
+
+                # Determine if this is a setup/install file
+                all_setup_files = []
+                for setup_files in self.ECOSYSTEM_SETUP_FILES.values():
+                    all_setup_files.extend(setup_files)
+                # .pth files are ALWAYS treated as setup files since they execute at Python startup
+                is_setup_file = file in all_setup_files or file_path.suffix == ".pth"
+
+                # Determine file language
+                file_language = None
+                if file_path.suffix in [".py", ".pth"]:
+                    file_language = "python"
+                elif file_path.suffix in [".js", ".mjs", ".cjs"]:
+                    file_language = "javascript"
 
                 try:
-                    logger.info(f"  Scanning: {rel_path} (setup file: {is_setup_file})")
+                    logger.info(f"  Scanning: {rel_path} (setup file: {is_setup_file}, language: {file_language})")
                     scanned_count += 1
 
                     with open(file_path, "r", errors="ignore") as f:
@@ -182,18 +300,43 @@ class SourceScanner:
                         if check.setup_only and not is_setup_file:
                             continue
 
+                        # Skip language-specific checks if file language doesn't match
+                        if check.languages and file_language not in check.languages:
+                            continue
+
+                        # Skip checks if ecosystem doesn't match the language
+                        # e.g., don't run JS checks on Python packages
+                        if ecosystem and check.languages:
+                            ecosystem_language_map = {
+                                'pypi': 'python',
+                                'npm': 'javascript'
+                            }
+                            expected_lang = ecosystem_language_map.get(ecosystem)
+                            if expected_lang and expected_lang not in check.languages:
+                                continue
+
+                        # Skip file-extension-specific checks if extension doesn't match
+                        if check.file_extensions and file_path.suffix not in check.file_extensions:
+                            continue
+
+                        # Allow checks with no language/extension specification to run on all files
                         if re.search(check.pattern, content):
                             finding = f"{check.description} in {file}"
                             file_findings.append(finding)
                             logger.warning(f"    ⚠️  FOUND: {check.description}")
 
-                    # 2. Python AST Scan (setup.py / __init__.py usually critical)
-                    if file_path.suffix == ".py":
+                    # 2. Python AST Scan (only on setup files to avoid false positives)
+                    if file_path.suffix == ".py" and is_setup_file:
                         logger.debug(f"    Running Python AST analysis...")
                         ast_findings = self._scan_python_ast(content, file)
                         for finding in ast_findings:
                             logger.warning(f"    ⚠️  FOUND: {finding}")
                         file_findings.extend(ast_findings)
+
+                    # 3. Flag .pth files (executed at Python startup)
+                    if file_path.suffix == ".pth":
+                        logger.warning(f"    ⚠️  .pth file detected (executes at Python startup)")
+                        file_findings.append(f".pth file present: {file} (auto-executed at Python startup)")
 
                     if not file_findings:
                         logger.info(f"    ✓ Clean")

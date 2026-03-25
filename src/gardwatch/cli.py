@@ -189,7 +189,7 @@ async def analyze_dependencies(dependencies: list[Dependency], engine: TrustEngi
                                     logging.info(f"Downloading and extracting package...")
                                     async with downloader.download_and_extract(dl_url) as extract_path:
                                         logging.info(f"Extracted to {extract_path}, scanning...")
-                                        findings = scanner.scan_directory(extract_path)
+                                        findings = scanner.scan_directory(extract_path, ecosystem=dep.ecosystem)
                                         logging.info(f"Scan complete. Findings: {len(findings) if findings else 0}")
 
                                         if findings:
@@ -321,22 +321,160 @@ async def run_scan(package: str, ecosystem: str, deep: bool, version: Optional[s
     if is_critical:
         sys.exit(1)
 
+def run_local_scan(file_path: str):
+    """Scan a local package file (.whl, .tar.gz, .tgz, etc.)"""
+    from .scanner import SourceScanner
+    import tempfile
+    import tarfile
+    import zipfile
+
+    file_path_obj = Path(file_path)
+    if not file_path_obj.exists():
+        console.print(f"[red]Error: File not found: {file_path}[/red]")
+        sys.exit(1)
+
+    console.print(f"\n[bold]Deep Scan of Local Package: {file_path_obj.name}[/bold]\n")
+
+    scanner = SourceScanner()
+
+    # Infer ecosystem from file extension
+    ecosystem = None
+    if file_path_obj.suffix == '.whl':
+        ecosystem = 'pypi'
+    elif file_path_obj.suffix == '.tgz':
+        ecosystem = 'npm'
+    # .tar.gz could be either, leave as None
+
+    try:
+        # Extract the package to a temporary directory
+        with tempfile.TemporaryDirectory(prefix="gardwatch_local_") as tmpdir:
+            extract_path = Path(tmpdir) / "extracted"
+            extract_path.mkdir()
+
+            console.print(f"[cyan]Extracting package...[/cyan]")
+
+            # Handle different archive formats
+            if file_path_obj.suffix in ['.whl', '.zip']:
+                with zipfile.ZipFile(file_path_obj, 'r') as zip_ref:
+                    zip_ref.extractall(extract_path)
+            elif file_path_obj.suffix in ['.gz', '.tgz'] or file_path_obj.name.endswith('.tar.gz'):
+                with tarfile.open(file_path_obj, 'r:*') as tar_ref:
+                    tar_ref.extractall(extract_path, filter='data')
+            else:
+                console.print(f"[red]Error: Unsupported file format: {file_path_obj.suffix}[/red]")
+                sys.exit(1)
+
+            console.print(f"[cyan]Scanning for malicious patterns...[/cyan]\n")
+            findings = scanner.scan_directory(extract_path, ecosystem=ecosystem)
+
+            total_checks = len([c for c in scanner.CHECKS if c.enabled]) + len(scanner.AST_CHECKS)
+
+            # Create a report similar to scan --deep but without metadata checks
+            if findings:
+                status = "CRITICAL"
+                score = 0
+                color = "red"
+                status_label = f"{status} - Trust Score: {score}/100"
+            else:
+                status = "SAFE"
+                score = 100
+                color = "green"
+                status_label = f"{status} - Trust Score: {score}/100"
+
+            # Build the report panel
+            grid = Table.grid(padding=(0, 2))
+            grid.add_column(style="bold cyan", justify="right")
+            grid.add_column(style="white")
+
+            if findings:
+                grid.add_row("-100 pts", f"[bold]Deep Scan:[/bold] Malicious patterns detected ({len(findings)} issues found in {total_checks} checks)")
+                grid.add_row("", "")
+                for finding in findings:
+                    grid.add_row("WARN", f"[red]{finding}[/red]")
+            else:
+                grid.add_row("0 pts", f"[bold]Deep Scan:[/bold] Passed all {total_checks} security checks")
+
+            title = Text(f"{file_path_obj.name}", style="bold white")
+            subtitle = Text(status_label, style=f"bold {color}")
+
+            console.print(Panel(
+                grid,
+                title=title,
+                subtitle=subtitle,
+                border_style=color,
+                expand=False
+            ))
+
+            if findings:
+                sys.exit(1)
+            else:
+                sys.exit(0)
+
+    except Exception as e:
+        console.print(f"[red]Error during scan: {e}[/red]")
+        import traceback
+        logging.error(traceback.format_exc())
+        sys.exit(1)
+
 def main():
     parser = argparse.ArgumentParser(description="GardWatch: Protect your dependencies.")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
+    # Generate deep scan checks description
+    from .scanner import SourceScanner
+    scanner = SourceScanner()
+
+    checks_by_category = {}
+    for check in scanner.CHECKS:
+        if check.enabled:
+            if check.category not in checks_by_category:
+                checks_by_category[check.category] = []
+            checks_by_category[check.category].append(check.description)
+
+    deep_scan_help_lines = ["Security checks performed when scanning with --deep:", ""]
+
+    category_labels = {
+        "code_execution": "Code Execution",
+        "process": "Process/Shell Execution",
+        "network": "Network Activity",
+        "file_access": "Sensitive File Access"
+    }
+
+    for cat, checks in checks_by_category.items():
+        label = category_labels.get(cat, cat)
+        deep_scan_help_lines.append(f"{label}:")
+        for check in checks:
+            deep_scan_help_lines.append(f"  • {check}")
+        deep_scan_help_lines.append("")
+
+    deep_scan_help_lines.append("Python AST Analysis:")
+    for check in scanner.AST_CHECKS:
+        deep_scan_help_lines.append(f"  • {check}")
+
+    deep_scan_help = "\n".join(deep_scan_help_lines)
+
     # Analyze file command
-    analyze_parser = subparsers.add_parser("analyze", help="Analyze dependency files")
+    analyze_parser = subparsers.add_parser(
+        "analyze",
+        help="Analyze dependency files",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=deep_scan_help
+    )
     analyze_parser.add_argument("files", nargs="+", help="Dependency files to analyze")
-    analyze_parser.add_argument("--deep", action="store_true", help="Perform deep code analysis (downloads packages)")
+    analyze_parser.add_argument("--deep", action="store_true", help="Perform deep code analysis (downloads packages). See details below.")
     analyze_parser.add_argument("--sbom", action="store_true", help="Treat input files as CycloneDX SBOMs")
     analyze_parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 
     # Scan single package command
-    scan_parser = subparsers.add_parser("scan", help="Scan a single package")
+    scan_parser = subparsers.add_parser(
+        "scan",
+        help="Scan a single package",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=deep_scan_help
+    )
     scan_parser.add_argument("package", help="Package name")
     scan_parser.add_argument("--version", help="Specific version to scan (optional, defaults to latest)")
-    scan_parser.add_argument("--deep", action="store_true", help="Perform deep code analysis (downloads packages)")
+    scan_parser.add_argument("--deep", action="store_true", help="Perform deep code analysis (downloads packages). See details below.")
     scan_parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 
     group = scan_parser.add_mutually_exclusive_group(required=True)
@@ -346,6 +484,16 @@ def main():
     group.add_argument("--cargo", action="store_true", help="Check as Rust crate")
     group.add_argument("--maven", action="store_true", help="Check as Java artifact")
     group.add_argument("--nuget", action="store_true", help="Check as .NET package")
+
+    # Scan local package file command
+    scan_local_parser = subparsers.add_parser(
+        "scan-local",
+        help="Scan a local package file (.whl, .tar.gz, .tgz)",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=deep_scan_help
+    )
+    scan_local_parser.add_argument("file", help="Path to package file (.whl, .tar.gz, .tgz)")
+    scan_local_parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 
     args = parser.parse_args()
     
@@ -370,6 +518,8 @@ def main():
 
         version = getattr(args, "version", None)
         asyncio.run(run_scan(args.package, ecosystem, args.deep, version))
+    elif args.command == "scan-local":
+        run_local_scan(args.file)
     else:
         parser.print_help()
 
