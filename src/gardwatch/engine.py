@@ -60,9 +60,9 @@ class TrustEngine:
 
         # Run Checks
         components = self.registry.run_all(context)
-        
+
         # Calculate Score
-        current_score = 50 # Start neutral
+        current_score = 100
         critical_failure = False
         malware_found = False
         
