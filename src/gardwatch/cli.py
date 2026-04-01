@@ -34,7 +34,7 @@ console = Console()
 
 def render_report(dep: Dependency, report: TrustReport):
     """Render a detailed scorecard for a dependency."""
-    
+
     # Status Color
     color_map = {
         "SAFE": "green",
@@ -42,7 +42,7 @@ def render_report(dep: Dependency, report: TrustReport):
         "CRITICAL": "red"
     }
     color = color_map.get(report.status, "white")
-    
+
     # Header
     title = Text(f"{dep.name} ({dep.ecosystem})", style="bold white")
     subtitle = Text(f"{report.status} - Trust Score: {report.score}/100", style=f"bold {color}")
@@ -239,10 +239,49 @@ async def run_analysis(files: list[str], deep: bool, force_sbom: bool = False):
         console.print("\n[bold green]SUCCESS:[/bold green] No critical risks found.")
         sys.exit(0)
 
-async def run_scan(package: str, ecosystem: str, deep: bool):
+async def run_scan(package: str, ecosystem: str, deep: bool, version: Optional[str] = None, check_deps: bool = False):
     engine = TrustEngine()
-    dep = Dependency(name=package, ecosystem=ecosystem)
-    is_critical = await analyze_dependencies([dep], engine, f"Analysis of {package} ({ecosystem})", deep, show_safe=True)
+    dep = Dependency(name=package, ecosystem=ecosystem, version=version)
+    version_str = f"@{version}" if version else ""
+
+    # If check_deps is enabled, resolve the full dependency chain
+    deps_to_scan = [dep]
+
+    if check_deps:
+        console.print(f"[yellow]Resolving dependency chain for {package}...[/yellow]")
+        async with httpx.AsyncClient() as http_client:
+            from .dependency_resolver import DependencyResolver
+            deps_client = DepsDevClient(http_client)
+            resolver = DependencyResolver(deps_client)
+
+            try:
+                dependency_tree = await resolver.resolve_dependency_chain(dep)
+
+                # Get summary
+                summary = resolver.get_dependency_tree_summary()
+                console.print(f"[cyan]{summary}[/cyan]")
+
+                # Get all unique dependencies to scan
+                all_deps = resolver.get_all_unique_dependencies()
+
+                # Include the root package in the scan
+                deps_to_scan = [dep] + all_deps
+
+                if len(all_deps) > 0:
+                    console.print(f"[yellow]Will scan {len(deps_to_scan)} packages (including {package} and its dependencies)[/yellow]")
+                else:
+                    console.print(f"[green]No dependencies found for {package}[/green]")
+            except Exception as e:
+                console.print(f"[red]Error resolving dependencies: {e}[/red]")
+                logging.exception("Dependency resolution failed")
+                # Fall back to scanning just the target package
+                deps_to_scan = [dep]
+
+    title = f"Analysis of {package}{version_str} ({ecosystem})"
+    if check_deps and len(deps_to_scan) > 1:
+        title += f" and {len(deps_to_scan) - 1} dependencies"
+
+    is_critical = await analyze_dependencies(deps_to_scan, engine, title, deep, show_safe=True)
     if is_critical:
         sys.exit(1)
 
@@ -260,7 +299,9 @@ def main():
     # Scan single package command
     scan_parser = subparsers.add_parser("scan", help="Scan a single package")
     scan_parser.add_argument("package", help="Package name")
-    scan_parser.add_argument("--deep", action="store_true", help="Perform deep code analysis (downloads packages)")
+    scan_parser.add_argument("--version", help="Specific version to scan (optional, defaults to latest)")
+    scan_parser.add_argument("--deep", action="store_true", help="Perform deep code analysis (downloads packages). See details below.")
+    scan_parser.add_argument("--check-deps", action="store_true", help="Recursively check all dependencies for supply-chain attacks (slower but more thorough)")
     scan_parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
     
     group = scan_parser.add_mutually_exclusive_group(required=True)
@@ -291,8 +332,12 @@ def main():
         elif args.cargo: ecosystem = "cargo"
         elif args.maven: ecosystem = "maven"
         elif args.nuget: ecosystem = "nuget"
-        
-        asyncio.run(run_scan(args.package, ecosystem, args.deep))
+
+        version = getattr(args, "version", None)
+        check_deps = getattr(args, "check_deps", False)
+        asyncio.run(run_scan(args.package, ecosystem, args.deep, version, check_deps))
+    elif args.command == "scan-local":
+        run_local_scan(args.file)
     else:
         parser.print_help()
 

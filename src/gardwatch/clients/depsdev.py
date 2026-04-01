@@ -107,3 +107,39 @@ class DepsDevClient:
 
     # Alias for backward compat
     get_project_scorecard = get_project_data
+
+    async def get_dependency_tree(self, dependency: Dependency) -> Optional['DependencyTree']:
+        """
+        Fetch the full dependency tree for a package version using the :dependencies endpoint.
+        This returns both direct and transitive dependencies in one call.
+
+        Returns: DependencyTree model with all dependencies, or None if not found.
+        """
+        from ..models import DependencyTree
+
+        system = self._get_system(dependency.ecosystem).upper()
+        name = urllib.parse.quote(dependency.name, safe='')
+        version = dependency.version
+
+        if not version:
+            # Need to resolve version first
+            package_info, version_details = await self.get_package_and_version(dependency)
+            if version_details:
+                version = version_details.get("versionKey", {}).get("version")
+
+        if not version:
+            return None
+
+        url = f"{self.BASE_URL}/systems/{system}/packages/{name}/versions/{version}:dependencies"
+
+        try:
+            response = await self._make_request(url)
+            if response and response.status_code == 200:
+                data = response.json()
+                return DependencyTree(**data)
+        except httpx.HTTPError as e:
+            logger.debug(f"HTTP error fetching dependency tree for {name}@{version}: {e}")
+        except Exception as e:
+            logger.warning(f"Error parsing dependency tree for {name}@{version}: {e}")
+
+        return None

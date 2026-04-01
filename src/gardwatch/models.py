@@ -45,6 +45,13 @@ class DepsDevRelatedProject(BaseModel):
     projectKey: DepsDevProjectKey
     relationType: str
 
+class DepsDevDependencyRequirement(BaseModel):
+    """A dependency requirement from deps.dev"""
+    versionKey: Optional[DepsDevVersionKey] = None  # The resolved version
+
+    class Config:
+        extra = "allow"  # Allow additional fields we don't explicitly model
+
 class DepsDevVersionDetails(BaseModel):
     versionKey: DepsDevVersionKey
     publishedAt: Optional[str] = None
@@ -53,6 +60,7 @@ class DepsDevVersionDetails(BaseModel):
     advisoryKeys: List[DepsDevAdvisoryKey] = Field(default_factory=list)
     relatedProjects: List[DepsDevRelatedProject] = Field(default_factory=list)
     description: Optional[str] = None
+    dependencies: List[DepsDevDependencyRequirement] = Field(default_factory=list)
 
 class DepsDevPackage(BaseModel):
     packageKey: Dict[str, str] = Field(default_factory=dict)
@@ -87,3 +95,49 @@ class PackageMetadata(BaseModel):
     downloads_last_month: int
     repository_url: Optional[str] = None
     ecosystem: str
+
+# --- Dependency Tree Models (from deps.dev :dependencies endpoint) ---
+
+class DependencyRelation(str):
+    """Enum-like class for dependency relations."""
+    SELF = "SELF"
+    DIRECT = "DIRECT"
+    INDIRECT = "INDIRECT"
+
+class DependencyNode(BaseModel):
+    """A node in the dependency tree from deps.dev."""
+    versionKey: DepsDevVersionKey
+    relation: str  # SELF, DIRECT, or INDIRECT
+    bundled: bool = False
+    errors: List[str] = Field(default_factory=list)
+
+    @property
+    def is_direct(self) -> bool:
+        """Check if this is a direct dependency."""
+        return self.relation == "DIRECT"
+
+    @property
+    def is_transitive(self) -> bool:
+        """Check if this is a transitive (indirect) dependency."""
+        return self.relation == "INDIRECT"
+
+    @property
+    def is_self(self) -> bool:
+        """Check if this is the root package itself."""
+        return self.relation == "SELF"
+
+class DependencyTree(BaseModel):
+    """Full dependency tree response from deps.dev."""
+    nodes: List[DependencyNode] = Field(default_factory=list)
+
+    def get_direct_dependencies(self) -> List[DependencyNode]:
+        """Get only direct dependencies."""
+        return [node for node in self.nodes if node.is_direct]
+
+    def get_transitive_dependencies(self) -> List[DependencyNode]:
+        """Get only transitive (indirect) dependencies."""
+        return [node for node in self.nodes if node.is_transitive]
+
+    def get_all_dependencies(self) -> List[DependencyNode]:
+        """Get all dependencies (excluding SELF)."""
+        return [node for node in self.nodes if not node.is_self]
