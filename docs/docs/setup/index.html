@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Guide - GardWatch</title>
+    <meta name="description" content="Set up GardWatch for your AI coding assistant, VS Code, or CLI. Protect your dependencies from supply chain attacks.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cyan: #4de8d2;
+            --cyan-glow: #00e5ff;
+            --cyan-dim: rgba(77, 232, 210, 0.15);
+            --navy-deep: #0a0e1a;
+            --navy: #0f1628;
+            --navy-mid: #162035;
+            --navy-light: #1e2d4f;
+            --text: #c8d6e5;
+            --text-bright: #e8eef5;
+            --text-muted: #6b7fa0;
+            --border: #1e2d4f;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--navy-deep);
+            color: var(--text);
+            line-height: 1.7;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.2rem 2rem;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            background: rgba(10, 14, 26, 0.95);
+            backdrop-filter: blur(12px);
+            z-index: 100;
+        }
+
+        nav .logo {
+            font-family: 'Courier Prime', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-bright);
+            text-decoration: none;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        nav .logo em {
+            font-style: normal;
+            color: var(--cyan);
+        }
+
+        nav div {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        nav a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        nav a:hover { color: var(--cyan); }
+
+        .layout {
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            min-height: calc(100vh - 60px);
+        }
+
+        .sidebar {
+            width: 240px;
+            flex-shrink: 0;
+            padding: 2rem 1.5rem;
+            border-right: 1px solid var(--border);
+            position: sticky;
+            top: 60px;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+        }
+
+        .sidebar a {
+            display: block;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.88rem;
+            padding: 6px 12px;
+            border-radius: 6px;
+            margin-bottom: 2px;
+            transition: all 0.15s;
+        }
+
+        .sidebar a:hover {
+            color: var(--text-bright);
+            background: var(--navy-mid);
+        }
+
+        .sidebar .section-label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            padding: 16px 12px 6px;
+        }
+
+        .content {
+            flex: 1;
+            padding: 3rem 4rem;
+            max-width: 800px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-bright);
+            margin-bottom: 0.5rem;
+        }
+
+        h1 + p {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            margin-bottom: 2.5rem;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-bright);
+            margin-top: 3rem;
+            margin-bottom: 1rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+        }
+
+        h2:first-of-type {
+            border-top: none;
+            padding-top: 0;
+            margin-top: 0;
+        }
+
+        h3 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--text-bright);
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        p { margin-bottom: 1rem; }
+
+        a { color: var(--cyan); }
+
+        code {
+            font-family: 'Courier Prime', monospace;
+            background: var(--navy-mid);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.88rem;
+            color: var(--cyan);
+        }
+
+        pre {
+            background: var(--navy);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px 20px;
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            font-family: 'Courier Prime', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: var(--text-bright);
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+
+        .pick-intro {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 1rem;
+        }
+
+        .pick-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            margin: 1.5rem 0 2.5rem;
+        }
+
+        .pick-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .pick-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .pick-section-title {
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .pick-card {
+            background: linear-gradient(180deg, rgba(22, 32, 53, 0.7), rgba(15, 22, 40, 0.95));
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-decoration: none;
+            color: var(--text);
+            transition: all 0.2s;
+            min-height: 148px;
+        }
+
+        .pick-card:hover {
+            border-color: var(--cyan);
+            background: linear-gradient(180deg, rgba(30, 45, 79, 0.9), rgba(22, 32, 53, 0.98));
+            transform: translateY(-1px);
+        }
+
+        .pick-card-primary {
+            background: linear-gradient(135deg, rgba(77, 232, 210, 0.14), rgba(15, 22, 40, 0.98));
+            border-color: rgba(77, 232, 210, 0.35);
+            min-height: auto;
+        }
+
+        .pick-card strong {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-bright);
+            margin-bottom: 6px;
+            font-size: 1rem;
+        }
+
+        .pick-card span {
+            display: block;
+            font-size: 0.84rem;
+            line-height: 1.55;
+            color: var(--text-muted);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        th {
+            text-align: left;
+            padding: 10px 14px;
+            background: var(--navy-mid);
+            color: var(--text-bright);
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tag {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            vertical-align: middle;
+        }
+
+        .tag-safe { background: rgba(77, 232, 210, 0.15); color: var(--cyan); }
+        .tag-suspicious { background: rgba(255, 193, 7, 0.15); color: #ffc107; }
+        .tag-critical { background: rgba(255, 82, 82, 0.15); color: #ff5252; }
+
+        .signal-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 1.5rem;
+        }
+
+        .signal-card {
+            background: var(--navy-mid);
+            border-radius: 8px;
+            padding: 14px;
+        }
+
+        .signal-card strong {
+            display: block;
+            color: var(--text-bright);
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+        }
+
+        .signal-card span {
+            color: var(--text-dim);
+            font-size: 0.78rem;
+        }
+
+        ul, ol {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+        }
+
+        li { margin-bottom: 0.4rem; }
+
+        .note {
+            background: var(--cyan-dim);
+            border-left: 3px solid var(--cyan);
+            padding: 12px 16px;
+            border-radius: 0 6px 6px 0;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .content { padding: 2rem 1.5rem; }
+            .pick-grid { grid-template-columns: 1fr; }
+            .pick-card { min-height: auto; }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/" class="logo">Gard<em>Watch</em></a>
+        <div>
+            <a href="https://github.com/GarderaSecurity/gardwatch" style="display:inline-flex;align-items:center;gap:6px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>GitHub</a>
+        </div>
+    </nav>
+
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="section-label">Get Started</div>
+            <a href="#pick-your-tool">Pick your tool</a>
+
+            <div class="section-label">CLI</div>
+            <a href="#cli">Command Line</a>
+
+            <div class="section-label">AI Assistants</div>
+            <a href="#claude-code">Claude Code</a>
+            <a href="#mcp-clients">Other MCP Clients</a>
+
+            <div class="section-label">Extensions</div>
+            <a href="#vscode">VS Code</a>
+            <a href="#cursor">Cursor</a>
+
+            <div class="section-label">Reference</div>
+            <a href="#scoring">Scoring</a>
+            <a href="#comparison">Comparison</a>
+        </aside>
+
+        <main class="content">
+            <h1>Setup Guide</h1>
+            <p>Protect your dependencies from supply chain attacks. Pick the integration that fits your workflow.</p>
+
+            <!-- Pick your tool -->
+            <h2 id="pick-your-tool">Pick your tool</h2>
+            <p class="pick-intro">Pick the setup that fits your workflow.</p>
+
+            <div class="note">
+                <strong>Recommended:</strong> If possible, install both an AI assistant integration and the IDE extension.
+                <ul style="margin:0.5rem 0 0 0;">
+                    <li><strong>AI assistant</strong>. Catches risky packages before they're installed.</li>
+                    <li><strong>IDE extension</strong>. Scans your lockfiles so existing dependencies are covered too.</li>
+                </ul>
+            </div>
+
+            <div class="pick-stack">
+                <a href="#cli" class="pick-card pick-card-primary">
+                    <strong>CLI <span class="tag tag-safe">Free</span></strong>
+                    <span>Free and open source. Scan from the terminal with no Gardera account or API key.</span>
+                </a>
+                <div class="pick-group">
+                    <div class="pick-section-title">AI assistants</div>
+                    <div class="pick-grid">
+                        <a href="#claude-code" class="pick-card">
+                            <strong>Claude Code</strong>
+                            <span>One command, browser login, and local lockfile scanning inside Claude Code.</span>
+                        </a>
+                        <a href="#mcp-clients" class="pick-card">
+                            <strong>Other MCP clients</strong>
+                            <span>Other MCP-compatible tools using an API key.</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="pick-group">
+                    <div class="pick-section-title">IDE Extensions</div>
+                    <div class="pick-grid">
+                        <a href="#vscode" class="pick-card">
+                            <strong>VS Code</strong>
+                            <span>Inline dependency scores and scan results directly in your editor.</span>
+                        </a>
+                        <a href="#cursor" class="pick-card">
+                            <strong>Cursor</strong>
+                            <span>The same extension experience in Cursor through Open VSX.</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CLI -->
+            <h2 id="cli">Command Line <span class="tag tag-safe">Free &amp; Open Source</span></h2>
+
+            <p>The GardWatch CLI is free and open source. No Gardera account or API key required. See the <a href="https://github.com/GarderaSecurity/gardwatch">GitHub repo</a> for installation and usage instructions.</p>
+
+            <!-- Claude Code -->
+            <h2 id="claude-code">Claude Code</h2>
+
+            <p>Requires a <a href="https://app.gardera.io">Gardera account</a>. One command sets up OAuth login, local lockfile parsing, and automatic scanning:</p>
+
+            <pre><code>npx @gardera/gardwatch-mcp setup-claude</code></pre>
+
+            <p>Then open Claude Code and run <code>/mcp</code> to complete the browser login with your Gardera account.</p>
+
+            <h3>How it works</h3>
+            <ol>
+                <li>When the AI runs a package manager command (e.g. <code>npm install</code>, <code>pip install</code>, <code>cargo add</code>), GardWatch is automatically triggered</li>
+                <li>Package identifiers are extracted and sent to GardWatch for scoring</li>
+                <li>If any package is flagged <span class="tag tag-critical">CRITICAL</span> or <span class="tag tag-suspicious">SUSPICIOUS</span>, Claude warns you before continuing</li>
+            </ol>
+
+            <p>You can also ask Claude directly:</p>
+            <pre><code>"Is event-stream 3.3.6 safe to install?"</code></pre>
+
+            <h3>Uninstall</h3>
+            <pre><code>claude mcp remove gardera</code></pre>
+            <p>Remove the hook manually from <code>~/.claude/settings.json</code> if needed.</p>
+
+            <!-- MCP Clients -->
+            <h2 id="mcp-clients">Other MCP clients</h2>
+
+            <p>Requires a <a href="https://app.gardera.io">Gardera account</a>. GardWatch runs as a local MCP server that works with any MCP-compatible AI assistant.</p>
+
+            <h3>1. Get an API key</h3>
+            <p>Go to <a href="https://app.gardera.io/settings/api-keys">app.gardera.io/settings/api-keys</a> and create a new key. Copy it. It's only shown once.</p>
+
+            <h3>2. Add to your MCP config</h3>
+
+            <pre><code>{
+  "mcpServers": {
+    "gardera-gardwatch": {
+      "command": "npx",
+      "args": ["-y", "@gardera/gardwatch-mcp"],
+      "env": {
+        "GARDERA_API_KEY": "your-api-key"
+      }
+    }
+  }
+}</code></pre>
+
+            <p>Add this to your assistant's MCP configuration file:</p>
+
+            <table>
+                <tr><th>Assistant</th><th>Config file</th></tr>
+                <tr><td>Cursor</td><td><code>~/.cursor/mcp.json</code></td></tr>
+                <tr><td>Windsurf</td><td><code>~/.codeium/windsurf/mcp_config.json</code></td></tr>
+                <tr><td>Cline</td><td><code>.cline/mcp_settings.json</code></td></tr>
+            </table>
+
+            <p>For other MCP clients, refer to their documentation for the config file location. The JSON format above is standard across MCP implementations.</p>
+
+            <h3>How it works</h3>
+            <ol>
+                <li>The MCP server runs locally as a subprocess of your AI assistant</li>
+                <li>When a scan is triggered, the server reads your lockfile from disk</li>
+                <li>It parses the lockfile locally, extracts package identifiers, and sends them to the GardWatch API</li>
+                <li>Scores are returned to the AI assistant, which warns you about risky packages</li>
+            </ol>
+
+
+            <!-- VS Code -->
+            <h2 id="vscode">VS Code</h2>
+
+            <p>Requires a <a href="https://app.gardera.io">Gardera account</a>. The <a href="https://marketplace.visualstudio.com/items?itemName=gardera.gardera-vscode">Gardera VS Code extension</a> adds real-time dependency scoring directly in your editor.</p>
+
+            <h3>Install</h3>
+            <p>Search for <strong>Gardera</strong> in the Extensions marketplace, or:</p>
+            <pre><code>code --install-extension gardera.gardera-vscode</code></pre>
+
+            <h3>Setup</h3>
+            <ol>
+                <li>Install the extension</li>
+                <li>Enter your API key when prompted (or go to Settings &gt; Gardera &gt; Write API Key)</li>
+                <li>Open or modify a lockfile. Scanning runs automatically and issues are flagged inline</li>
+            </ol>
+
+            <p>Get an API key at <a href="https://app.gardera.io/settings/api-keys">app.gardera.io/settings/api-keys</a>.</p>
+
+            <h3>Features</h3>
+            <ul>
+                <li><strong>Inline scores</strong>. Every dependency is annotated with its GardWatch score (e.g. <code>requests 95/100 SAFE</code>)</li>
+                <li><strong>Problems panel</strong>. Critical and suspicious packages appear as errors and warnings</li>
+                <li><strong>Sidebar dashboard</strong>. Scan status, flagged package counts, and results</li>
+                <li><strong>Automatic scanning</strong>. Lockfiles are scanned when opened, saved, or modified</li>
+            </ul>
+
+            <!-- Cursor -->
+            <h2 id="cursor">Cursor</h2>
+
+            <p>Requires a <a href="https://app.gardera.io">Gardera account</a>. The same Gardera extension is available for Cursor via <a href="https://open-vsx.org/extension/GarderaSecurity/gardera-vscode">Open VSX</a>.</p>
+
+            <h3>Install</h3>
+            <p>Search for <strong>Gardera</strong> in Cursor's Extensions panel, or install manually:</p>
+            <ol>
+                <li>Open Cursor</li>
+                <li>Go to Extensions (<code>Cmd+Shift+X</code> / <code>Ctrl+Shift+X</code>)</li>
+                <li>Search for <strong>Gardera Security</strong> and click Install</li>
+            </ol>
+
+            <h3>Setup</h3>
+            <p>Same as VS Code. See the <a href="#vscode">VS Code section</a> for full details.</p>
+
+            <!-- Scoring -->
+            <h2 id="scoring">Scoring</h2>
+
+            <p>GardWatch scores every package from 0 to 100:</p>
+
+            <table>
+                <tr><th>Status</th><th>Score</th><th>Meaning</th></tr>
+                <tr><td><span class="tag tag-safe">SAFE</span></td><td>80&ndash;100</td><td>No concerns found</td></tr>
+                <tr><td><span class="tag tag-suspicious">SUSPICIOUS</span></td><td>50&ndash;79</td><td>Some risk signals. Review recommended</td></tr>
+                <tr><td><span class="tag tag-critical">CRITICAL</span></td><td>0&ndash;49</td><td>High risk. Do not install without investigation</td></tr>
+            </table>
+
+            <p>Scores are based on multiple signals:</p>
+            <ul>
+                <li><strong>Malware database</strong>. Known malicious packages (instant CRITICAL)</li>
+                <li><strong>Typosquatting</strong>. Names similar to popular packages</li>
+                <li><strong>Age &amp; popularity</strong>. Download counts, package maturity</li>
+                <li><strong>Namespace squatting</strong>. Patterns like "popular-js" or "node-popular"</li>
+                <li><strong>OpenSSF Scorecard</strong>. Security best practices</li>
+                <li><strong>Metadata quality</strong>. Repository links, descriptions</li>
+                <li><strong>Version anomalies</strong>. Suspicious version spikes, 0.0.0 releases</li>
+                <li><strong>Homoglyphs</strong>. Non-ASCII characters in package names</li>
+                <li><strong>Empty metadata</strong>. Packages with no description</li>
+            </ul>
+
+            <h2 id="comparison">Comparison</h2>
+
+            <table>
+                <tr><th>Integration</th><th>Auth</th><th>Gardera account required</th></tr>
+                <tr><td>CLI</td><td>None</td><td>No, free &amp; open source</td></tr>
+                <tr><td>Claude Code</td><td>OAuth (browser login)</td><td>Yes</td></tr>
+                <tr><td>Other MCP clients</td><td>API key</td><td>Yes</td></tr>
+                <tr><td>IDE extension</td><td>API key</td><td>Yes</td></tr>
+            </table>
+
+        </main>
+    </div>
+</body>
+</html>
