@@ -366,12 +366,16 @@
             <a href="#cli">Command Line</a>
 
             <div class="section-label">AI Assistants</div>
+            <a href="#ai-assistants">Overview</a>
             <a href="#claude-code">Claude Code</a>
+            <a href="#codex">Codex</a>
+            <a href="#cursor">Cursor</a>
+            <a href="#gemini">Gemini</a>
             <a href="#mcp-clients">Other MCP Clients</a>
 
             <div class="section-label">Extensions</div>
             <a href="#vscode">VS Code</a>
-            <a href="#cursor">Cursor</a>
+            <a href="#cursor-extension">Cursor</a>
 
             <div class="section-label">Reference</div>
             <a href="#scoring">Scoring</a>
@@ -404,11 +408,23 @@
                     <div class="pick-grid">
                         <a href="#claude-code" class="pick-card">
                             <strong>Claude Code</strong>
-                            <span>One command, browser login, and local lockfile scanning inside Claude Code.</span>
+                            <span>Automatic scans as Claude installs packages.</span>
+                        </a>
+                        <a href="#codex" class="pick-card">
+                            <strong>Codex</strong>
+                            <span>One-line install via <code>codex mcp add</code>.</span>
+                        </a>
+                        <a href="#cursor" class="pick-card">
+                            <strong>Cursor</strong>
+                            <span>Add the server in <code>~/.cursor/mcp.json</code>.</span>
+                        </a>
+                        <a href="#gemini" class="pick-card">
+                            <strong>Gemini</strong>
+                            <span>One-line install via <code>gemini mcp add</code>.</span>
                         </a>
                         <a href="#mcp-clients" class="pick-card">
                             <strong>Other MCP clients</strong>
-                            <span>Other MCP-compatible tools using an API key.</span>
+                            <span>Manual setup for any MCP-compatible tool.</span>
                         </a>
                     </div>
                 </div>
@@ -419,7 +435,7 @@
                             <strong>VS Code</strong>
                             <span>Inline dependency scores and scan results directly in your editor.</span>
                         </a>
-                        <a href="#cursor" class="pick-card">
+                        <a href="#cursor-extension" class="pick-card">
                             <strong>Cursor</strong>
                             <span>The same extension experience in Cursor through Open VSX.</span>
                         </a>
@@ -432,33 +448,81 @@
 
             <p>The GardWatch CLI is free and open source. No Gardera account or API key required. See the <a href="https://github.com/GarderaSecurity/gardwatch">GitHub repo</a> for installation and usage instructions.</p>
 
+            <!-- Common AI assistant intro -->
+            <h2 id="ai-assistants">AI Assistants</h2>
+
+            <p>GardWatch connects to your AI assistant as an MCP server. Once set up, it works the same way across all clients:</p>
+
+            <ol>
+                <li>When the AI runs a package manager command (e.g. <code>npm install</code>, <code>pip install</code>, <code>cargo add</code>), GardWatch is automatically triggered</li>
+                <li>Package identifiers are extracted and sent to GardWatch for scoring</li>
+                <li>If any package is flagged <span class="tag tag-critical">CRITICAL</span> or <span class="tag tag-suspicious">SUSPICIOUS</span>, the AI warns you before continuing</li>
+            </ol>
+
+            <p>You can also ask your AI assistant directly:</p>
+            <pre><code>"Is event-stream 3.3.6 safe to install?"</code></pre>
+
+            <p>All integrations require a <a href="https://app.gardera.io">Gardera account</a>. Pick your assistant below for setup instructions.</p>
+
             <!-- Claude Code -->
             <h2 id="claude-code">Claude Code</h2>
 
-            <p>Requires a <a href="https://app.gardera.io">Gardera account</a>. One command sets up OAuth login, local lockfile parsing, and automatic scanning:</p>
+            <p>One command sets up OAuth login, local lockfile parsing, and automatic scanning:</p>
 
             <pre><code>npx @gardera/gardwatch-mcp setup-claude</code></pre>
 
             <p>Then open Claude Code and run <code>/mcp</code> to complete the browser login with your Gardera account.</p>
 
-            <h3>How it works</h3>
-            <ol>
-                <li>When the AI runs a package manager command (e.g. <code>npm install</code>, <code>pip install</code>, <code>cargo add</code>), GardWatch is automatically triggered</li>
-                <li>Package identifiers are extracted and sent to GardWatch for scoring</li>
-                <li>If any package is flagged <span class="tag tag-critical">CRITICAL</span> or <span class="tag tag-suspicious">SUSPICIOUS</span>, Claude warns you before continuing</li>
-            </ol>
-
-            <p>You can also ask Claude directly:</p>
-            <pre><code>"Is event-stream 3.3.6 safe to install?"</code></pre>
-
             <h3>Uninstall</h3>
             <pre><code>claude mcp remove gardera</code></pre>
             <p>Remove the hook manually from <code>~/.claude/settings.json</code> if needed.</p>
 
+            <!-- Codex -->
+            <h2 id="codex">Codex</h2>
+
+            <p>Add the Gardera MCP server to Codex with one command:</p>
+
+            <pre><code>codex mcp add gardera --url https://mcp.gardera.io/mcp</code></pre>
+
+            <p>The first time you use it, Codex will open your browser to complete the OAuth login with your Gardera account.</p>
+
+            <h3>Uninstall</h3>
+            <pre><code>codex mcp remove gardera</code></pre>
+
+            <!-- Cursor -->
+            <h2 id="cursor">Cursor</h2>
+
+            <p>Add the Gardera MCP server to your Cursor config at <code>~/.cursor/mcp.json</code>:</p>
+
+            <pre><code>{
+  "mcpServers": {
+    "gardera": {
+      "url": "https://mcp.gardera.io/mcp"
+    }
+  }
+}</code></pre>
+
+            <p>Open Cursor's <strong>Settings &gt; MCP</strong> panel and enable the <code>gardera</code> server. Cursor will open your browser to complete the OAuth login with your Gardera account.</p>
+
+            <h3>Uninstall</h3>
+            <p>Remove the <code>gardera</code> entry from <code>~/.cursor/mcp.json</code>.</p>
+
+            <!-- Gemini -->
+            <h2 id="gemini">Gemini</h2>
+
+            <p>Add the Gardera MCP server to Gemini with one command:</p>
+
+            <pre><code>gemini mcp add gardera https://mcp.gardera.io/mcp -t http</code></pre>
+
+            <p>Then open Gemini and run <code>/mcp auth gardera</code> to complete the OAuth login with your Gardera account in your browser.</p>
+
+            <h3>Uninstall</h3>
+            <pre><code>gemini mcp remove gardera</code></pre>
+
             <!-- MCP Clients -->
             <h2 id="mcp-clients">Other MCP clients</h2>
 
-            <p>Requires a <a href="https://app.gardera.io">Gardera account</a>. GardWatch runs as a local MCP server that works with any MCP-compatible AI assistant.</p>
+            <p>GardWatch runs as a local MCP server that works with any MCP-compatible AI assistant.</p>
 
             <h3>1. Get an API key</h3>
             <p>Go to <a href="https://app.gardera.io/settings/api-keys">app.gardera.io/settings/api-keys</a> and create a new key. Copy it. It's only shown once.</p>
@@ -477,28 +541,10 @@
   }
 }</code></pre>
 
-            <p>Add this to your assistant's MCP configuration file:</p>
+            <p>Add this to your assistant's MCP configuration file. Refer to your assistant's documentation for the config file location.</p>
 
-            <table>
-                <tr><th>Assistant</th><th>Config file</th></tr>
-                <tr><td>Cursor</td><td><code>~/.cursor/mcp.json</code></td></tr>
-                <tr><td>Windsurf</td><td><code>~/.codeium/windsurf/mcp_config.json</code></td></tr>
-                <tr><td>Cline</td><td><code>.cline/mcp_settings.json</code></td></tr>
-            </table>
-
-            <p>For other MCP clients, refer to their documentation for the config file location. The JSON format above is standard across MCP implementations.</p>
-
-            <h3>How it works</h3>
-            <ol>
-                <li>The MCP server runs locally as a subprocess of your AI assistant</li>
-                <li>When a scan is triggered, the server reads your lockfile from disk</li>
-                <li>It parses the lockfile locally, extracts package identifiers, and sends them to the GardWatch API</li>
-                <li>Scores are returned to the AI assistant, which warns you about risky packages</li>
-            </ol>
-
-
-            <!-- VS Code -->
-            <h2 id="vscode">VS Code</h2>
+            <!-- VS Code IDE Extension -->
+            <h2 id="vscode">VS Code (IDE Extension)</h2>
 
             <p>Requires a <a href="https://app.gardera.io">Gardera account</a>. The <a href="https://marketplace.visualstudio.com/items?itemName=gardera.gardera-vscode">Gardera VS Code extension</a> adds real-time dependency scoring directly in your editor.</p>
 
@@ -523,8 +569,8 @@
                 <li><strong>Automatic scanning</strong>. Lockfiles are scanned when opened, saved, or modified</li>
             </ul>
 
-            <!-- Cursor -->
-            <h2 id="cursor">Cursor</h2>
+            <!-- Cursor IDE Extension -->
+            <h2 id="cursor-extension">Cursor (IDE Extension)</h2>
 
             <p>Requires a <a href="https://app.gardera.io">Gardera account</a>. The same Gardera extension is available for Cursor via <a href="https://open-vsx.org/extension/GarderaSecurity/gardera-vscode">Open VSX</a>.</p>
 
