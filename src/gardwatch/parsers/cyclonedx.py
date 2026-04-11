@@ -1,6 +1,5 @@
 import json
-import xml.etree.ElementTree as ET
-import defusedxml.ElementTree as DET
+import defusedxml.ElementTree as ET
 from pathlib import Path
 from typing import AsyncIterator, Optional, Tuple
 import urllib.parse
@@ -13,10 +12,10 @@ class CycloneDXParser(DependencyParser):
                 # Read enough to find the format specifiers
                 head = f.read(4096)
                 head_strip = head.strip()
-                
+
                 if head_strip.startswith('{') and '"bomFormat"' in head and '"CycloneDX"' in head:
                     return 'json'
-                
+
                 if '<bom' in head or 'http://cyclonedx.org/schema/bom' in head:
                     return 'xml'
         except Exception:
@@ -39,7 +38,7 @@ class CycloneDXParser(DependencyParser):
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                
+
             for component in data.get('components', []):
                 purl = component.get('purl')
                 if purl:
@@ -51,13 +50,13 @@ class CycloneDXParser(DependencyParser):
 
     async def _parse_xml(self, file_path: Path) -> AsyncIterator[Dependency]:
         try:
-            tree = DET.parse(file_path)
+            tree = ET.parse(file_path)
             root = tree.getroot()
-            
+
             # XML Namespaces are annoying, ignore them for tag searching if possible
             # or handle them dynamically. CycloneDX namespaces version changes.
             # Local name strategy:
-            
+
             # Find all 'component' tags
             for elem in root.iter():
                 if elem.tag.endswith('component'):
@@ -67,7 +66,7 @@ class CycloneDXParser(DependencyParser):
                         if child.tag.endswith('purl'):
                             purl_elem = child
                             break
-                    
+
                     if purl_elem is not None and purl_elem.text:
                         dep = self._parse_purl(purl_elem.text, str(file_path))
                         if dep:
@@ -79,24 +78,24 @@ class CycloneDXParser(DependencyParser):
         # Format: pkg:type/namespace/name@version?qualifiers#subpath
         if not purl.startswith('pkg:'):
             return None
-            
+
         try:
             # Strip scheme
             remainder = purl[4:]
-            
+
             # Split type
             if '/' not in remainder:
                 return None
             parts = remainder.split('/', 1)
             pkg_type = parts[0]
             remainder = parts[1]
-            
+
             # Split version
             version = None
             if '@' in remainder:
                 name_part, ver_part = remainder.split('@', 1)
                 remainder = name_part
-                
+
                 # Strip qualifiers/subpath from version
                 if '?' in ver_part:
                     version = ver_part.split('?', 1)[0]
@@ -104,23 +103,23 @@ class CycloneDXParser(DependencyParser):
                     version = ver_part.split('#', 1)[0]
                 else:
                     version = ver_part
-            
+
             # Strip qualifiers/subpath from name (if no version present or left over)
             if '?' in remainder:
                 remainder = remainder.split('?', 1)[0]
             if '#' in remainder:
                 remainder = remainder.split('#', 1)[0]
-                
+
             name = remainder
-            
+
             # URL decode name/namespace
             # PURL spec says namespace/name are percent-encoded.
             name = urllib.parse.unquote(name)
-            
+
             ecosystem = self._map_type_to_ecosystem(pkg_type)
             if not ecosystem:
                 return None
-            
+
             # Special handling for maven: group:artifact
             if ecosystem == "maven" and '/' in name:
                 # purl: pkg:maven/org.apache/commons-lang3

@@ -27,6 +27,7 @@ dependencies = [
     "rich",
     "pydantic",
     "tenacity",
+    "defusedxml",
 ]
 
 [project.optional-dependencies]
