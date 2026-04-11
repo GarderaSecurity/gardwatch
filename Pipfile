@@ -8,6 +8,7 @@ httpx = "*"
 rich = "*"
 pydantic = "*"
 tenacity = "*"
+defusedxml = "*"
 
 [dev-packages]
 mypy = "*"
