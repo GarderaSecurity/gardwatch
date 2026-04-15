@@ -29,6 +29,7 @@ from .scanner import SourceScanner
 from .models import Dependency
 from .engine import TrustEngine
 from .report import TrustReport
+from .wrappers import run_npm_wrapper, run_pip_wrapper
 
 console = Console()
 
@@ -246,7 +247,175 @@ async def run_scan(package: str, ecosystem: str, deep: bool):
     if is_critical:
         sys.exit(1)
 
+def setup_wrappers(managers: list[str]):
+    """Install wrapper aliases for package managers."""
+    import os
+    import shutil
+
+    # Determine which managers to set up
+    if "all" in managers:
+        managers = ["npm", "pip"]
+
+    # Detect shell
+    shell = os.environ.get("SHELL", "")
+    shell_name = Path(shell).name if shell else None
+
+    if not shell_name or shell_name not in ["bash", "zsh", "fish"]:
+        console.print("[yellow]Warning: Could not detect shell type (bash/zsh/fish)[/yellow]")
+        console.print("You may need to manually add aliases to your shell configuration file.")
+        shell_name = "bash"  # Default to bash
+
+    # Determine RC file
+    home = Path.home()
+    if shell_name == "bash":
+        rc_file = home / ".bashrc"
+    elif shell_name == "zsh":
+        rc_file = home / ".zshrc"
+    elif shell_name == "fish":
+        rc_file = home / ".config" / "fish" / "config.fish"
+    else:
+        rc_file = home / ".bashrc"
+
+    # Find gardwatch path
+    gardwatch_path = shutil.which("gardwatch")
+    if not gardwatch_path:
+        console.print("[red]Error: gardwatch not found in PATH[/red]")
+        console.print("Please ensure gardwatch is installed and in your PATH")
+        sys.exit(1)
+
+    # Generate aliases
+    aliases = []
+    for manager in managers:
+        if shell_name == "fish":
+            alias_line = f'alias {manager}="gardwatch {manager}"'
+        else:
+            alias_line = f'alias {manager}="gardwatch {manager}"'
+        aliases.append(alias_line)
+
+    # Check if aliases already exist
+    existing_content = ""
+    if rc_file.exists():
+        existing_content = rc_file.read_text()
+
+    # Add aliases if not present
+    new_aliases = []
+    for alias_line in aliases:
+        if alias_line not in existing_content:
+            new_aliases.append(alias_line)
+
+    if not new_aliases:
+        console.print("[green]All requested aliases are already installed[/green]")
+        return
+
+    # Add marker comments for easy removal
+    marker_start = "# >>> gardwatch wrappers >>>"
+    marker_end = "# <<< gardwatch wrappers <<<"
+
+    # Check if marker exists
+    if marker_start in existing_content:
+        console.print("[yellow]GardWatch wrapper section already exists in {rc_file}[/yellow]")
+        console.print("Remove it first with: gardwatch remove-wrapper")
+        sys.exit(1)
+
+    # Append to RC file
+    with rc_file.open("a") as f:
+        f.write(f"\n{marker_start}\n")
+        for alias_line in new_aliases:
+            f.write(f"{alias_line}\n")
+        f.write(f"{marker_end}\n")
+
+    console.print(f"[green]✓ Aliases installed to {rc_file}[/green]")
+    for manager in managers:
+        console.print(f"  - {manager} → gardwatch {manager}")
+
+    console.print(f"\n[bold]To activate the aliases, run:[/bold]")
+    console.print(f"  source {rc_file}")
+    console.print("\nOr restart your terminal.")
+
+def remove_wrappers(managers: list[str]):
+    """Remove wrapper aliases for package managers."""
+    import os
+
+    # Detect shell
+    shell = os.environ.get("SHELL", "")
+    shell_name = Path(shell).name if shell else None
+
+    if not shell_name or shell_name not in ["bash", "zsh", "fish"]:
+        shell_name = "bash"
+
+    # Determine RC file
+    home = Path.home()
+    if shell_name == "bash":
+        rc_file = home / ".bashrc"
+    elif shell_name == "zsh":
+        rc_file = home / ".zshrc"
+    elif shell_name == "fish":
+        rc_file = home / ".config" / "fish" / "config.fish"
+    else:
+        rc_file = home / ".bashrc"
+
+    if not rc_file.exists():
+        console.print(f"[yellow]No configuration file found at {rc_file}[/yellow]")
+        return
+
+    # Read content
+    content = rc_file.read_text()
+
+    # Find and remove gardwatch section
+    marker_start = "# >>> gardwatch wrappers >>>"
+    marker_end = "# <<< gardwatch wrappers <<<"
+
+    if marker_start not in content:
+        console.print("[yellow]No gardwatch wrappers found in configuration file[/yellow]")
+        return
+
+    # Remove the section
+    lines = content.split('\n')
+    new_lines = []
+    skip = False
+
+    for line in lines:
+        if marker_start in line:
+            skip = True
+            continue
+        if marker_end in line:
+            skip = False
+            continue
+        if not skip:
+            new_lines.append(line)
+
+    # Write back
+    rc_file.write_text('\n'.join(new_lines))
+
+    console.print(f"[green]✓ GardWatch wrappers removed from {rc_file}[/green]")
+    console.print("\n[bold]To deactivate the aliases, run:[/bold]")
+    console.print(f"  source {rc_file}")
+    console.print("\nOr restart your terminal.")
+
 def main():
+    # Handle wrapper commands specially to avoid argparse interfering with pass-through arguments
+    # Check if "npm" or "pip" appears anywhere in sys.argv (after the script name)
+    wrapper_command = None
+    wrapper_index = None
+
+    for i, arg in enumerate(sys.argv[1:], 1):
+        if arg in ["npm", "pip"]:
+            wrapper_command = arg
+            wrapper_index = i
+            break
+
+    if wrapper_command:
+        # Everything after the wrapper command goes to the underlying package manager
+        wrapper_args = sys.argv[wrapper_index + 1:]
+
+        if wrapper_command == "npm":
+            exit_code = asyncio.run(run_npm_wrapper(wrapper_args))
+            sys.exit(exit_code)
+        elif wrapper_command == "pip":
+            exit_code = asyncio.run(run_pip_wrapper(wrapper_args))
+            sys.exit(exit_code)
+
+    # Normal argparse flow for other commands
     parser = argparse.ArgumentParser(description="GardWatch: Protect your dependencies.")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
@@ -262,7 +431,7 @@ def main():
     scan_parser.add_argument("package", help="Package name")
     scan_parser.add_argument("--deep", action="store_true", help="Perform deep code analysis (downloads packages)")
     scan_parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
-    
+
     group = scan_parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--npm", action="store_true", help="Check as npm package")
     group.add_argument("--pypi", action="store_true", help="Check as PyPI package")
@@ -270,6 +439,14 @@ def main():
     group.add_argument("--cargo", action="store_true", help="Check as Rust crate")
     group.add_argument("--maven", action="store_true", help="Check as Java artifact")
     group.add_argument("--nuget", action="store_true", help="Check as .NET package")
+
+    # setup-wrapper command
+    setup_parser = subparsers.add_parser("setup-wrapper", help="Install wrapper aliases for package managers")
+    setup_parser.add_argument("managers", nargs="*", choices=["npm", "pip", "all"], help="Package managers to set up (default: all)")
+
+    # remove-wrapper command
+    remove_parser = subparsers.add_parser("remove-wrapper", help="Remove wrapper aliases for package managers")
+    remove_parser.add_argument("managers", nargs="*", choices=["npm", "pip", "all"], help="Package managers to remove (default: all)")
 
     args = parser.parse_args()
     
@@ -291,8 +468,12 @@ def main():
         elif args.cargo: ecosystem = "cargo"
         elif args.maven: ecosystem = "maven"
         elif args.nuget: ecosystem = "nuget"
-        
+
         asyncio.run(run_scan(args.package, ecosystem, args.deep))
+    elif args.command == "setup-wrapper":
+        setup_wrappers(args.managers if args.managers else ["all"])
+    elif args.command == "remove-wrapper":
+        remove_wrappers(args.managers if args.managers else ["all"])
     else:
         parser.print_help()
 
