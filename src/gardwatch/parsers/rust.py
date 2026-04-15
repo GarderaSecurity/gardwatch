@@ -1,4 +1,7 @@
-import tomllib
+try:
+    import tomllib  # Python 3.11+
+except ImportError:
+    import tomli as tomllib  # Python 3.8-3.10
 from pathlib import Path
 from typing import AsyncIterator
 from .base import DependencyParser, Dependency

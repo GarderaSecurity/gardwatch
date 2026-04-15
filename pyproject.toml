@@ -7,7 +7,7 @@ name = "gardwatch"
 version = "0.1.0"
 description = "A powerful CLI tool to secure your software supply chain by analyzing dependencies for trust, security risks, and quality signals"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.8"
 license = "MIT"
 authors = [
     {name = "Gardera Security", email = "info@gardera.com"}
@@ -17,6 +17,10 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Security",
     "Topic :: Software Development :: Quality Assurance",
@@ -28,6 +32,7 @@ dependencies = [
     "pydantic",
     "tenacity",
     "defusedxml",
+    "tomli>=1.1.0; python_version<'3.11'",
 ]
 
 [project.optional-dependencies]
