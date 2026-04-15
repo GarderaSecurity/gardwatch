@@ -79,11 +79,13 @@ def render_report(dep: Dependency, report: TrustReport):
         expand=False
     ))
 
-async def analyze_dependencies(dependencies: list[Dependency], engine: TrustEngine, title: str, deep_scan: bool = False, show_safe: bool = False) -> bool:
-    # Use Gardera API when authenticated, fall back to local analysis
-    if get_valid_token():
-        return await _analyze_dependencies_remote(dependencies, title, show_safe)
-    return await _analyze_dependencies_local(dependencies, engine, title, deep_scan, show_safe)
+async def analyze_dependencies(dependencies: list[Dependency], engine: TrustEngine, title: str, deep_scan: bool = False, show_safe: bool = False, local: bool = False) -> bool:
+    if local:
+        return await _analyze_dependencies_local(dependencies, engine, title, deep_scan, show_safe)
+    if not get_valid_token():
+        console.print("[yellow]Not logged in. Logging in to Gardera...[/yellow]")
+        auth_login()
+    return await _analyze_dependencies_remote(dependencies, title, show_safe)
 
 
 async def _analyze_dependencies_remote(dependencies: list[Dependency], title: str, show_safe: bool = False) -> bool:
@@ -229,7 +231,7 @@ async def _analyze_dependencies_local(dependencies: list[Dependency], engine: Tr
 
     return any_critical
 
-async def run_analysis(files: list[str], deep: bool, force_sbom: bool = False):
+async def run_analysis(files: list[str], deep: bool, force_sbom: bool = False, local: bool = False):
     engine = TrustEngine()
     total_critical = 0
 
@@ -273,7 +275,7 @@ async def run_analysis(files: list[str], deep: bool, force_sbom: bool = False):
             console.print(f"[yellow]No dependencies found in {file_path}[/yellow]")
             continue
 
-        is_critical = await analyze_dependencies(dependencies, engine, f"Analysis of {file_path.name}", deep, show_safe=False)
+        is_critical = await analyze_dependencies(dependencies, engine, f"Analysis of {file_path.name}", deep, show_safe=False, local=local)
         if is_critical:
             total_critical += 1
 
@@ -284,10 +286,10 @@ async def run_analysis(files: list[str], deep: bool, force_sbom: bool = False):
         console.print("\n[bold green]SUCCESS:[/bold green] No critical risks found.")
         sys.exit(0)
 
-async def run_scan(package: str, ecosystem: str, deep: bool):
+async def run_scan(package: str, ecosystem: str, deep: bool, local: bool = False):
     engine = TrustEngine()
     dep = Dependency(name=package, ecosystem=ecosystem)
-    is_critical = await analyze_dependencies([dep], engine, f"Analysis of {package} ({ecosystem})", deep, show_safe=True)
+    is_critical = await analyze_dependencies([dep], engine, f"Analysis of {package} ({ecosystem})", deep, show_safe=True, local=local)
     if is_critical:
         sys.exit(1)
 
@@ -468,12 +470,14 @@ def main():
     analyze_parser.add_argument("files", nargs="+", help="Dependency files to analyze")
     analyze_parser.add_argument("--deep", action="store_true", help="Perform deep code analysis (downloads packages)")
     analyze_parser.add_argument("--sbom", action="store_true", help="Treat input files as CycloneDX SBOMs")
+    analyze_parser.add_argument("--local", action="store_true", help="Use local analysis instead of Gardera API")
     analyze_parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 
     # Scan single package command
     scan_parser = subparsers.add_parser("scan", help="Scan a single package")
     scan_parser.add_argument("package", help="Package name")
     scan_parser.add_argument("--deep", action="store_true", help="Perform deep code analysis (downloads packages)")
+    scan_parser.add_argument("--local", action="store_true", help="Use local analysis instead of Gardera API")
     scan_parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 
     group = scan_parser.add_mutually_exclusive_group(required=True)
@@ -508,7 +512,7 @@ def main():
     )
 
     if args.command == "analyze":
-        asyncio.run(run_analysis(args.files, args.deep, args.sbom))
+        asyncio.run(run_analysis(args.files, args.deep, args.sbom, local=args.local))
     elif args.command == "scan":
         ecosystem = "npm"
         if args.npm: ecosystem = "npm"
@@ -518,7 +522,7 @@ def main():
         elif args.maven: ecosystem = "maven"
         elif args.nuget: ecosystem = "nuget"
 
-        asyncio.run(run_scan(args.package, ecosystem, args.deep))
+        asyncio.run(run_scan(args.package, ecosystem, args.deep, local=args.local))
     elif args.command == "login":
         if is_logged_in():
             console.print("[yellow]Already logged in. Run 'gardwatch logout' first to re-authenticate.[/yellow]")
