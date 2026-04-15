@@ -30,12 +30,14 @@ from .models import Dependency
 from .engine import TrustEngine
 from .report import TrustReport
 from .wrappers import run_npm_wrapper, run_pip_wrapper
+from .auth import login as auth_login, logout as auth_logout, is_logged_in, get_valid_token
+from .clients.gardera import check_dependencies
 
 console = Console()
 
 def render_report(dep: Dependency, report: TrustReport):
     """Render a detailed scorecard for a dependency."""
-    
+
     # Status Color
     color_map = {
         "SAFE": "green",
@@ -43,26 +45,26 @@ def render_report(dep: Dependency, report: TrustReport):
         "CRITICAL": "red"
     }
     color = color_map.get(report.status, "white")
-    
+
     # Header
     title = Text(f"{dep.name} ({dep.ecosystem})", style="bold white")
     subtitle = Text(f"{report.status} - Trust Score: {report.score}/100", style=f"bold {color}")
-    
+
     # Components Table
     grid = Table.grid(padding=(0, 2))
     grid.add_column(style="bold cyan", justify="right")
     grid.add_column(style="white")
-    
+
     # Sort components by score descending
     sorted_components = sorted(report.components, key=lambda c: c.score, reverse=True)
-    
+
     for comp in sorted_components:
         pts = f"{'+'}{comp.score}" if comp.score > 0 else str(comp.score)
         grid.add_row(
             f"{pts} pts",
             f"[bold]{comp.label}:[/bold] {comp.description}"
         )
-    
+
     # Details/Warnings
     if report.details:
         grid.add_row("", "")
@@ -78,17 +80,59 @@ def render_report(dep: Dependency, report: TrustReport):
     ))
 
 async def analyze_dependencies(dependencies: list[Dependency], engine: TrustEngine, title: str, deep_scan: bool = False, show_safe: bool = False) -> bool:
+    # Use Gardera API when authenticated, fall back to local analysis
+    if get_valid_token():
+        return await _analyze_dependencies_remote(dependencies, title, show_safe)
+    return await _analyze_dependencies_local(dependencies, engine, title, deep_scan, show_safe)
+
+
+async def _analyze_dependencies_remote(dependencies: list[Dependency], title: str, show_safe: bool = False) -> bool:
+    console.print(f"[bold]Using Gardera API for analysis[/bold]")
     console.print(f"\n[bold]{title}[/bold]")
-    
+
     any_critical = False
     stats = {"SAFE": 0, "SUSPICIOUS": 0, "CRITICAL": 0}
-    
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+        transient=True,
+    ) as progress:
+        progress.add_task(f"[green]Scanning {len(dependencies)} packages via Gardera API...", total=None)
+        results = await check_dependencies(dependencies)
+
+    for dep, report in results:
+        stats[report.status] = stats.get(report.status, 0) + 1
+        if report.status == "CRITICAL":
+            any_critical = True
+        if show_safe or report.status != "SAFE":
+            render_report(dep, report)
+
+    summary_grid = Table.grid(padding=(0, 2))
+    summary_grid.add_column(style="bold white")
+    summary_grid.add_column(style="bold cyan")
+    summary_grid.add_row("Total Scanned:", str(len(results)))
+    summary_grid.add_row("Safe:", f"[green]{stats['SAFE']}[/green]")
+    summary_grid.add_row("Suspicious:", f"[yellow]{stats['SUSPICIOUS']}[/yellow]")
+    summary_grid.add_row("Critical:", f"[red]{stats['CRITICAL']}[/red]")
+    console.print(Panel(summary_grid, title="Scan Summary", expand=False))
+
+    return any_critical
+
+
+async def _analyze_dependencies_local(dependencies: list[Dependency], engine: TrustEngine, title: str, deep_scan: bool = False, show_safe: bool = False) -> bool:
+    console.print(f"\n[bold]{title}[/bold]")
+
+    any_critical = False
+    stats = {"SAFE": 0, "SUSPICIOUS": 0, "CRITICAL": 0}
+
     async with httpx.AsyncClient() as http_client:
         deps_client = DepsDevClient(http_client)
         registry_client = RegistryClient(http_client)
         downloader = PackageDownloader(http_client)
         scanner = SourceScanner()
-        
+
         # Ecosystem clients
         clients = {
             "npm": NpmClient(http_client),
@@ -96,9 +140,9 @@ async def analyze_dependencies(dependencies: list[Dependency], engine: TrustEngi
             "nuget": NugetClient(http_client),
             "cargo": CargoClient(http_client)
         }
-        
+
         semaphore = asyncio.Semaphore(10)
-        
+
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -106,34 +150,34 @@ async def analyze_dependencies(dependencies: list[Dependency], engine: TrustEngi
             transient=True
         ) as progress:
             task = progress.add_task(f"[green]Scanning {len(dependencies)} packages...", total=len(dependencies))
-            
+
             async def check_dep(dep):
                     async with semaphore:
                         # 1. Fetch Package Info AND Version Details
                         package_info, version_details = await deps_client.get_package_and_version(dep)
-                        
+
                         # 2. Fetch Downloads
                         download_count = None
                         client = clients.get(dep.ecosystem)
                         if client:
                             download_count = await client.get_download_count(dep.name)
-                        
+
                         # 3. Fetch Scorecard / Project Data
                         scorecard = None
                         project_data = None
                         if version_details:
                             projects = version_details.get("relatedProjects", [])
                             source_project = next(
-                                (p["projectKey"]["id"] for p in projects if p.get("relationType") == "SOURCE_REPO"), 
+                                (p["projectKey"]["id"] for p in projects if p.get("relationType") == "SOURCE_REPO"),
                                 None
                             )
                             if source_project:
                                 project_data = await deps_client.get_project_data(source_project)
                                 if project_data:
                                     scorecard = project_data.get("scorecard")
-        
+
                         report = engine.evaluate(dep, package_info, version_details, scorecard, download_count, project_data)
-                        
+
                         if deep_scan and version_details:
                             version = version_details.get("versionKey", {}).get("version")
                             dl_url = None
@@ -144,7 +188,7 @@ async def analyze_dependencies(dependencies: list[Dependency], engine: TrustEngi
                             else:
                                 if deep_scan:
                                     console.print(f"[yellow]Warning: Deep scan source download not yet supported for {dep.ecosystem}[/yellow]")
-                            
+
                             if dl_url:
                                 try:
                                     async with downloader.download_and_extract(dl_url) as extract_path:
@@ -158,17 +202,17 @@ async def analyze_dependencies(dependencies: list[Dependency], engine: TrustEngi
                                             report.details.extend(findings)
                                 except Exception:
                                     pass
-        
+
                         progress.update(task, advance=1)
                         return dep, report
             results = await asyncio.gather(*(check_dep(dep) for dep in dependencies))
-            
+
             for dep, report in results:
                 stats[report.status] = stats.get(report.status, 0) + 1
-                
+
                 if report.status == "CRITICAL":
                     any_critical = True
-                
+
                 if show_safe or report.status != "SAFE":
                     render_report(dep, report)
 
@@ -180,7 +224,7 @@ async def analyze_dependencies(dependencies: list[Dependency], engine: TrustEngi
     summary_grid.add_row("Safe:", f"[green]{stats['SAFE']}[/green]")
     summary_grid.add_row("Suspicious:", f"[yellow]{stats['SUSPICIOUS']}[/yellow]")
     summary_grid.add_row("Critical:", f"[red]{stats['CRITICAL']}[/red]")
-    
+
     console.print(Panel(summary_grid, title="Scan Summary", expand=False))
 
     return any_critical
@@ -188,11 +232,11 @@ async def analyze_dependencies(dependencies: list[Dependency], engine: TrustEngi
 async def run_analysis(files: list[str], deep: bool, force_sbom: bool = False):
     engine = TrustEngine()
     total_critical = 0
-    
+
     # Standard parsers
     standard_parsers = [
-        RequirementsTxtParser(), 
-        PackageJsonParser(), 
+        RequirementsTxtParser(),
+        PackageJsonParser(),
         PipfileParser(),
         GoModParser(),
         CargoTomlParser(),
@@ -200,13 +244,13 @@ async def run_analysis(files: list[str], deep: bool, force_sbom: bool = False):
         CSharpProjectParser(),
         CycloneDXParser()
     ]
-    
+
     for file_str in files:
         file_path = Path(file_str)
         if not file_path.exists():
             console.print(f"[red]File not found: {file_path}[/red]")
             continue
-            
+
         parser = None
         if force_sbom:
             parser = CycloneDXParser()
@@ -216,7 +260,7 @@ async def run_analysis(files: list[str], deep: bool, force_sbom: bool = False):
                  continue
         else:
             parser = next((p for p in standard_parsers if p.can_parse(file_path)), None)
-            
+
         if not parser:
             console.print(f"[red]No parser found for file: {file_path}[/red]")
             continue
@@ -224,7 +268,7 @@ async def run_analysis(files: list[str], deep: bool, force_sbom: bool = False):
         dependencies = []
         async for dep in parser.parse(file_path):
             dependencies.append(dep)
-            
+
         if not dependencies:
             console.print(f"[yellow]No dependencies found in {file_path}[/yellow]")
             continue
@@ -440,6 +484,11 @@ def main():
     group.add_argument("--maven", action="store_true", help="Check as Java artifact")
     group.add_argument("--nuget", action="store_true", help="Check as .NET package")
 
+    # Auth commands
+    subparsers.add_parser("login", help="Log in to Gardera via browser")
+    subparsers.add_parser("logout", help="Log out and revoke tokens")
+    subparsers.add_parser("status", help="Show authentication status")
+
     # setup-wrapper command
     setup_parser = subparsers.add_parser("setup-wrapper", help="Install wrapper aliases for package managers")
     setup_parser.add_argument("managers", nargs="*", choices=["npm", "pip", "all"], help="Package managers to set up (default: all)")
@@ -449,7 +498,7 @@ def main():
     remove_parser.add_argument("managers", nargs="*", choices=["npm", "pip", "all"], help="Package managers to remove (default: all)")
 
     args = parser.parse_args()
-    
+
     # Configure logging
     log_level = logging.DEBUG if getattr(args, "verbose", False) else logging.WARNING
     logging.basicConfig(
@@ -457,7 +506,7 @@ def main():
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         stream=sys.stderr
     )
-    
+
     if args.command == "analyze":
         asyncio.run(run_analysis(args.files, args.deep, args.sbom))
     elif args.command == "scan":
@@ -470,6 +519,28 @@ def main():
         elif args.nuget: ecosystem = "nuget"
 
         asyncio.run(run_scan(args.package, ecosystem, args.deep))
+    elif args.command == "login":
+        if is_logged_in():
+            console.print("[yellow]Already logged in. Run 'gardwatch logout' first to re-authenticate.[/yellow]")
+            sys.exit(0)
+        console.print("Opening browser to log in to Gardera...")
+        try:
+            auth_login()
+            console.print("[green]Successfully logged in to Gardera.[/green]")
+        except Exception as e:
+            console.print(f"[red]Login failed: {e}[/red]")
+            sys.exit(1)
+    elif args.command == "logout":
+        try:
+            auth_logout()
+            console.print("[green]Logged out of Gardera.[/green]")
+        except RuntimeError as e:
+            console.print(f"[yellow]{e}[/yellow]")
+    elif args.command == "status":
+        if is_logged_in():
+            console.print("[green]Logged in to Gardera.[/green]")
+        else:
+            console.print("[yellow]Not logged in. Run 'gardwatch login' to authenticate.[/yellow]")
     elif args.command == "setup-wrapper":
         setup_wrappers(args.managers if args.managers else ["all"])
     elif args.command == "remove-wrapper":
