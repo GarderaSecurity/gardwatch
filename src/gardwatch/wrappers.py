@@ -111,6 +111,10 @@ class PackageManagerWrapper:
         """Get the dependency file path if it exists."""
         raise NotImplementedError
 
+    def extract_extra_dependency_files(self, args: list[str]) -> list[Path]:
+        """Return dependency files explicitly referenced by the command (e.g. pip's -r foo.txt)."""
+        return []
+
     async def parse_dependency_file(self, file_path: Path) -> list[Dependency]:
         """Parse the dependency file and return dependencies."""
         raise NotImplementedError
@@ -125,8 +129,18 @@ class PackageManagerWrapper:
         # Extract packages from command line
         packages = self.extract_packages(args)
 
-        # If no packages in command line, check if we should parse dependency file
-        if not packages:
+        # Expand any dependency files referenced in the command (e.g. pip -r foo.txt)
+        extra_files = self.extract_extra_dependency_files(args)
+        for extra_file in extra_files:
+            if extra_file.exists():
+                console.print(f"\n[cyan]Scanning dependencies from {extra_file}...[/cyan]")
+                deps = await self.parse_dependency_file(extra_file)
+                packages.extend((dep.name, dep.version) for dep in deps)
+            else:
+                console.print(f"[yellow]Warning: requirements file not found, skipping: {extra_file}[/yellow]")
+
+        # If no packages in command line or referenced files, fall back to default dependency file
+        if not packages and not extra_files:
             dep_file = self.get_dependency_file()
             if dep_file and dep_file.exists():
                 console.print(f"\n[cyan]No packages specified, scanning dependencies from {dep_file.name}...[/cyan]")
@@ -242,6 +256,28 @@ class PipWrapper(PackageManagerWrapper):
             dependencies.append(dep)
         return dependencies
 
+    def extract_extra_dependency_files(self, args: list[str]) -> list[Path]:
+        """
+        Surface requirements files referenced via -r / --requirement.
+        Handles: -r foo.txt, --requirement foo.txt, --requirement=foo.txt, -rfoo.txt.
+        """
+        files: list[Path] = []
+        skip_next = False
+        for arg in args[1:]:
+            if skip_next:
+                files.append(Path(arg))
+                skip_next = False
+                continue
+            if arg in ('-r', '--requirement'):
+                skip_next = True
+                continue
+            if arg.startswith('--requirement='):
+                files.append(Path(arg.split('=', 1)[1]))
+                continue
+            if arg.startswith('-r') and not arg.startswith('--') and len(arg) > 2:
+                files.append(Path(arg[2:]))
+        return files
+
     def extract_packages(self, args: list[str]) -> list[tuple[str, Optional[str]]]:
         """
         Extract pip packages from arguments.
@@ -249,7 +285,7 @@ class PipWrapper(PackageManagerWrapper):
         - package
         - package==version
         - package>=version
-        - -r requirements.txt (TODO: parse the file)
+        Requirements files (-r foo.txt) are handled by extract_extra_dependency_files.
         """
         packages = []
         skip_next = False
@@ -261,10 +297,8 @@ class PipWrapper(PackageManagerWrapper):
 
             # Skip flags
             if arg.startswith('-'):
-                # Check for -r flag
+                # -r/--requirement consumes the next arg (the file path)
                 if arg == '-r' or arg == '--requirement':
-                    # Next arg is the requirements file
-                    # For now, we'll skip this - we could parse it later
                     skip_next = True
                 continue
 
