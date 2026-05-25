@@ -364,6 +364,7 @@
 
             <div class="section-label">CLI</div>
             <a href="#cli">Command Line</a>
+            <a href="#wrappers">Shell Wrappers</a>
 
             <div class="section-label">AI Assistants</div>
             <a href="#ai-assistants">Overview</a>
@@ -402,6 +403,10 @@
                 <a href="#cli" class="pick-card pick-card-primary">
                     <strong>CLI <span class="tag tag-safe">Free</span></strong>
                     <span>Free and open source. Scan from the terminal with no Gardera account or API key.</span>
+                </a>
+                <a href="#wrappers" class="pick-card pick-card-primary">
+                    <strong>Shell Wrappers <span class="tag tag-safe">Free</span></strong>
+                    <span>Drop-in aliases for <code>npm</code> and <code>pip</code> that scan every package before it installs.</span>
                 </a>
                 <div class="pick-group">
                     <div class="pick-section-title">AI assistants</div>
@@ -447,6 +452,68 @@
             <h2 id="cli">Command Line <span class="tag tag-safe">Free &amp; Open Source</span></h2>
 
             <p>The GardWatch CLI is free and open source. No Gardera account or API key required. See the <a href="https://github.com/GarderaSecurity/gardwatch">GitHub repo</a> for installation and usage instructions.</p>
+
+            <!-- Shell Wrappers -->
+            <h2 id="wrappers">Shell Wrappers <span class="tag tag-safe">Free &amp; Open Source</span></h2>
+
+            <p>The wrappers replace <code>npm</code> and <code>pip</code> with drop-in shell aliases that scan packages for supply chain risks before the real package manager runs. Requires the <a href="#cli">GardWatch CLI</a> to be installed and on your <code>PATH</code>.</p>
+
+            <h3>How it behaves</h3>
+            <ul>
+                <li><span class="tag tag-safe">SAFE</span> Installation proceeds automatically</li>
+                <li><span class="tag tag-suspicious">SUSPICIOUS</span> Warning printed, but installation proceeds automatically</li>
+                <li><span class="tag tag-critical">CRITICAL</span> Confirmation required before installing</li>
+            </ul>
+
+            <h3>Install (recommended)</h3>
+            <p>Set up wrappers for all supported package managers:</p>
+            <pre><code>gardwatch setup-wrapper</code></pre>
+
+            <p>Or only for a specific one:</p>
+            <pre><code>gardwatch setup-wrapper npm
+gardwatch setup-wrapper pip</code></pre>
+
+            <p>This adds aliases to your shell config (<code>~/.bashrc</code>, <code>~/.zshrc</code>, or <code>~/.config/fish/config.fish</code>). Activate them with:</p>
+            <pre><code>source ~/.bashrc  # or ~/.zshrc</code></pre>
+            <p>or by restarting your terminal.</p>
+
+            <h3>Install (manual)</h3>
+            <p>Add these lines to your shell config yourself:</p>
+            <pre><code>alias npm="gardwatch npm"
+alias pip="gardwatch pip"</code></pre>
+
+            <h3>Usage</h3>
+            <p>Use <code>npm</code> and <code>pip</code> normally. Install commands are scanned, everything else passes through:</p>
+            <pre><code>npm install lodash
+npm install express@4.18.0
+pip install requests
+pip install django==4.2.0
+pip install -r requirements.txt</code></pre>
+
+            <p>You can also call the wrappers directly without setting up aliases:</p>
+            <pre><code>gardwatch npm install lodash
+gardwatch pip install requests</code></pre>
+
+            <h3>Supported package managers</h3>
+            <ul>
+                <li><strong>npm</strong>. Intercepts <code>install</code>, <code>i</code>, <code>add</code>, <code>update</code>, <code>upgrade</code></li>
+                <li><strong>pip</strong>. Intercepts <code>install</code>, including <code>-r requirements.txt</code> (every pin in the file is scanned)</li>
+            </ul>
+            <p>Commands that don't install packages (<code>npm test</code>, <code>npm run build</code>, <code>pip list</code>, <code>pip show</code>, etc.) pass straight through.</p>
+
+            <h3>Bypass for a single command</h3>
+            <p>Call the real binary by its full path:</p>
+            <pre><code>/usr/bin/npm install lodash</code></pre>
+
+            <div class="note">
+                <strong>CI/CD:</strong> The wrappers work in CI, but interactive prompts on CRITICAL packages may hang. Prefer running <code>gardwatch analyze</code> against your lockfile instead.
+            </div>
+
+            <h3>Uninstall</h3>
+            <pre><code>gardwatch remove-wrapper</code></pre>
+            <p>Or remove a specific wrapper:</p>
+            <pre><code>gardwatch remove-wrapper npm</code></pre>
+            <p>Then reload your shell config.</p>
 
             <!-- Common AI assistant intro -->
             <h2 id="ai-assistants">AI Assistants</h2>
