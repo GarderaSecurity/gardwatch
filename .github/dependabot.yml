@@ -1,0 +1,11 @@
+# Keeps the commit-SHA pins in .github/workflows current. Dependabot bumps the
+# SHA and the "# vX.Y.Z" comment beside it together, so a pin never goes stale.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
