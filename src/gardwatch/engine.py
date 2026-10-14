@@ -2,6 +2,10 @@ from typing import Optional, Dict, Any
 from .models import Dependency, CheckContext, TrustReport, DepsDevPackage, DepsDevVersionDetails, OpenSSFScorecard, DepsDevProject, ScoreComponent
 from .checks import create_default_registry
 
+# What an unresolvable package scores. Neither a clean bill of health nor an
+# accusation; the UNKNOWN status carries the meaning.
+UNKNOWN_SCORE = 50
+
 class TrustEngine:
     def __init__(self):
         self.registry = create_default_registry()
@@ -40,20 +44,22 @@ class TrustEngine:
             project_data=proj_model
         )
 
-        # Baseline
+        # The registry has nothing under this name: a private package, a typo,
+        # a brand-new publish. We learned nothing, which is not the same as
+        # learning something bad, so this is a mid-band UNKNOWN, not an alarm.
         if not context.version_details:
-             comp = ScoreComponent(
-                 label="Registry Check",
-                 score=-100,
-                 description="Package not found in deps.dev (Possible hallucination or very new)",
-                 category="Trust"
-             )
-             return TrustReport(
-                status="CRITICAL",
+            comp = ScoreComponent(
+                label="Registry Check",
                 score=0,
+                description="Package could not be resolved in the registry",
+                category="Trust",
+            )
+            return TrustReport(
+                status="UNKNOWN",
+                score=UNKNOWN_SCORE,
                 components=[comp],
                 reason=comp.description,
-                details=[]
+                details=[],
             )
 
         # Run Checks

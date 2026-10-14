@@ -40,7 +40,8 @@ def render_report(dep: Dependency, report: TrustReport):
     color_map = {
         "SAFE": "green",
         "SUSPICIOUS": "yellow",
-        "CRITICAL": "red"
+        "CRITICAL": "red",
+        "UNKNOWN": "white",
     }
     color = color_map.get(report.status, "white")
     
@@ -81,7 +82,7 @@ async def analyze_dependencies(dependencies: list[Dependency], engine: TrustEngi
     console.print(f"\n[bold]{title}[/bold]")
     
     any_critical = False
-    stats = {"SAFE": 0, "SUSPICIOUS": 0, "CRITICAL": 0}
+    stats = {"SAFE": 0, "SUSPICIOUS": 0, "CRITICAL": 0, "UNKNOWN": 0}
     
     async with httpx.AsyncClient() as http_client:
         deps_client = DepsDevClient(http_client)
@@ -180,6 +181,7 @@ async def analyze_dependencies(dependencies: list[Dependency], engine: TrustEngi
     summary_grid.add_row("Safe:", f"[green]{stats['SAFE']}[/green]")
     summary_grid.add_row("Suspicious:", f"[yellow]{stats['SUSPICIOUS']}[/yellow]")
     summary_grid.add_row("Critical:", f"[red]{stats['CRITICAL']}[/red]")
+    summary_grid.add_row("Unknown:", f"[white]{stats['UNKNOWN']}[/white]")
     
     console.print(Panel(summary_grid, title="Scan Summary", expand=False))
 
