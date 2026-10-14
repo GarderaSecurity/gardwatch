@@ -28,6 +28,14 @@ class DepsDevClient:
         }
         return mapping.get(ecosystem, ecosystem)
 
+    @staticmethod
+    def _default_version(package_info: Dict[str, Any]) -> Optional[str]:
+        versions = package_info.get("versions", [])
+        for v in versions:
+            if v.get("isDefault"):
+                return v["versionKey"]["version"]
+        return versions[0]["versionKey"]["version"] if versions else None
+
     @retry(
         retry=retry_if_exception(is_rate_limit_error),
         wait=wait_exponential(multiplier=1, min=2, max=10),
@@ -65,14 +73,12 @@ class DepsDevClient:
         if not package_info:
             return None, None
 
-        # 2. Determine target version if not provided
-        if not target_version:
-            for v in package_info.get("versions", []):
-                if v.get("isDefault"):
-                    target_version = v["versionKey"]["version"]
-                    break
-            if not target_version and package_info.get("versions"):
-                target_version = package_info["versions"][0]["versionKey"]["version"]
+        # 2. Resolve the version. A dist-tag ("latest", "next") or a range
+        # ("^1.2.0") is not a version deps.dev knows, so anything not in the
+        # package's own version list falls back to the registry default.
+        known_versions = {v["versionKey"]["version"] for v in package_info.get("versions", [])}
+        if target_version not in known_versions:
+            target_version = self._default_version(package_info)
 
         if not target_version:
             return package_info, None
